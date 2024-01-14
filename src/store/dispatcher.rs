@@ -27,8 +27,7 @@ impl<S: Store> StoreContainer<S::Action> for ConcreteStoreContainer<S> {
 
     fn handle(&mut self, action: &S::Action) {
         if !self.done {
-            // todo, remove
-            let _action = self.store.handle(action);
+            self.store.handle(action);
             self.done = true;
         }
     }
@@ -42,7 +41,7 @@ impl<S: Store> ConcreteStoreContainer<S> {
     pub fn new(store: S) -> Self {
         ConcreteStoreContainer {
             done: false,
-            store: store,
+            store,
         }
     }
 }
@@ -50,6 +49,12 @@ impl<S: Store> ConcreteStoreContainer<S> {
 pub struct Dispatcher<A> {
     registered_stores: HashMap<TypeId, Box<dyn StoreContainer<A>>>,
 }
+
+impl<A> Default for Dispatcher<A> {
+    fn default() -> Self {
+        Self::new()
+    }
+} 
 
 impl<A> Dispatcher<A> {
     pub fn new() -> Dispatcher<A> {
@@ -81,7 +86,7 @@ impl<A> Dispatcher<A> {
                 .registered_stores
                 .iter_mut()
                 .map(|(&id, store)| {
-                    *&store.begin_dispatch();
+                    store.begin_dispatch();
                     id
                 })
                 .collect();

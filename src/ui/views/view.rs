@@ -1,15 +1,9 @@
 use crossterm::event::KeyEvent;
 use ratatui::Frame;
 
-use crate::ui::router::Router;
+use crate::{store::dispatcher::Dispatcher, ui::router::Navigate};
 
-pub trait ViewEventHandler {
-    fn handle_event(&mut self, router: &mut Router, key_event: &KeyEvent);
-}
-
-pub trait View: ViewEventHandler {
+pub trait View {
     fn render(&self, frame: &mut Frame);
-    // fn handle_event<F>(&self, route_to: F, key_event: &KeyEvent)
-    // where
-    //     F: FnOnce(String);
+    fn handle_event(&mut self, key_event: &KeyEvent, route_dispatcher: &mut Dispatcher<Navigate>);
 }

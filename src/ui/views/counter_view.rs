@@ -1,31 +1,34 @@
+use std::sync::{Mutex, Arc};
+
 use crate::{
-    event::EventHandler,
     model::{Model, ModelActions},
     store::dispatcher::Dispatcher,
 };
 
-use super::view::{View, ViewEventHandler};
+use super::view::View;
+use crossterm::event::{KeyEventKind, KeyCode::Char};
 use ratatui::{
     prelude::{Alignment, Frame},
     style::{Color, Style},
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 
-pub struct CounterView<'a> {
-    dispatcher: &'a Dispatcher<ModelActions>,
+pub struct CounterView {
+    dispatcher: Arc<Mutex<Dispatcher<ModelActions>>>,
 }
 
-impl<'a> CounterView<'a> {
-    pub fn new(dispatcher: &'a Dispatcher<ModelActions>) -> Self {
+impl CounterView {
+    pub fn new(dispatcher: Arc<Mutex<Dispatcher<ModelActions>>>) -> Self {
         CounterView {
-            dispatcher: dispatcher,
+            dispatcher,
         }
     }
 }
 
-impl<'a> View for CounterView<'a> {
+impl View for CounterView {
     fn render(&self, frame: &mut Frame) {
-        let store = self.dispatcher.get_store::<Model>().unwrap();
+        let dispatcher = self.dispatcher.lock().unwrap();
+        let store = dispatcher.get_store::<Model>().unwrap();
 
         frame.render_widget(
             Paragraph::new(format!(
@@ -48,14 +51,17 @@ impl<'a> View for CounterView<'a> {
             frame.size(),
         )
     }
-}
 
-impl<'a> ViewEventHandler for CounterView<'a> {
-    fn handle_event(
-        &mut self,
-        router: &mut crate::ui::router::Router,
-        key_event: &crossterm::event::KeyEvent,
-    ) {
-        todo!()
+    fn handle_event(&mut self, key_event: &crossterm::event::KeyEvent, route_dispatcher: &mut Dispatcher<crate::ui::router::Navigate>) {
+        if key_event.kind == KeyEventKind::Press {
+            let mut dispatcher = self.dispatcher.lock().unwrap();
+            match key_event.code {
+                Char('j') => dispatcher.dispatch(ModelActions::Increment),       
+                Char('k') => dispatcher.dispatch(ModelActions::Decrement),
+                Char('q') => dispatcher.dispatch(ModelActions::Exit),
+                _ => {}     
+            }
+        }
     }
+
 }
