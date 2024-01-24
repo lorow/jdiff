@@ -1,5 +1,5 @@
-use anyhow::Ok;
 use anyhow::Result;
+use anyhow::Ok;
 pub mod event;
 pub mod model;
 pub mod store;

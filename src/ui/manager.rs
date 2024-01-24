@@ -13,10 +13,15 @@ use crate::model::{Model, ModelActions};
 use crate::store::dispatcher::Dispatcher;
 use ratatui::prelude::*;
 
-use super::{views::{counter_view::CounterView, view::View}, router::{Navigate, Router}};
+use super::{views::{counter_view::CounterView, view::View, welcome_view::{self, WelcomeVIew}}, router::{Navigate, Router}};
 
 #[derive(Default)]
 pub struct UiManager {}
+
+// TOOD
+// ADD a power / status bar thingy 
+// extract app state to a proper store
+// add main input handler that handles proper store and passes stuff lower
 
 impl UiManager 
 {
@@ -33,15 +38,17 @@ impl UiManager
         let mut routes_map = HashMap::<String, Box<dyn View>>::new();
         let mut router_store = Router::new();
 
+        let welcome_view: WelcomeVIew = WelcomeVIew::new();
         let counter_view: CounterView = CounterView::new(Arc::clone(&model_dispatcher)); 
-        routes_map.insert("/".into(), Box::new(counter_view));
+        routes_map.insert("/".into(), Box::new(welcome_view));
+        routes_map.insert("/counter".into(), Box::new(counter_view));
         router_store.register_routes(Vec::from_iter(routes_map.keys().cloned())); 
 
         let mut route_dispatcher = Dispatcher::<Navigate>::new();
         route_dispatcher.register_store(router_store);
 
         let mut terminal = setup_terminal()?;
-        let events = EventHandler::new(250);
+        let events = EventHandler::new(100);
 
         while !{
             model_dispatcher
@@ -54,7 +61,8 @@ impl UiManager
             match events.next()? {
                Event::Tick => {
                     let current_route = {route_dispatcher.get_store::<Router>().unwrap().current_route.clone()};
-                    terminal.draw(|frame| routes_map.get(&current_route).unwrap().render(frame))?;
+                    let view = routes_map.get(&current_route).unwrap().to_owned();
+                    terminal.draw(|frame|self.render_ui(frame, view))?;
                 }
                 Event::Key(key_event) => {
                     let current_route = {route_dispatcher.get_store::<Router>().unwrap().current_route.clone()};
@@ -67,6 +75,19 @@ impl UiManager
         }
 
         restore_terminal(&mut terminal)
+    }
+    
+    fn render_ui(&self, frame: &mut Frame, view: &Box<dyn View>){ 
+   
+        let main_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(100),
+                Constraint::Min(1),
+            ])
+            .split(frame.size());
+        
+        view.render(frame, main_layout[0]);
     }
 }
 
