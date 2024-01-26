@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    model::{Model, ModelActions},
+    models::model::{Model, ModelActions},
     store::dispatcher::Dispatcher,
     ui::router::Navigate,
 };

@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::{model::ModelActions, store::dispatcher::Dispatcher};
+use crate::{models::model::ModelActions, store::dispatcher::Dispatcher};
 
 pub fn update(dispatcher: &mut Dispatcher<ModelActions>, key_event: KeyEvent) {
     match key_event.code {

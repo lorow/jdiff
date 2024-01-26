@@ -8,7 +8,7 @@ use std::{io::{self, Stdout}, collections::HashMap, sync::{Mutex, Arc}};
 use std::panic;
 
 use crate::event::{Event, EventHandler};
-use crate::model::{Model, ModelActions};
+use crate::models::model::{Model, ModelActions};
 
 use crate::store::dispatcher::Dispatcher;
 use ratatui::prelude::*;
