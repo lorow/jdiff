@@ -39,10 +39,7 @@ impl<S: Store> StoreContainer<S::Action> for ConcreteStoreContainer<S> {
 
 impl<S: Store> ConcreteStoreContainer<S> {
     pub fn new(store: S) -> Self {
-        ConcreteStoreContainer {
-            done: false,
-            store,
-        }
+        ConcreteStoreContainer { done: false, store }
     }
 }
 
@@ -54,7 +51,7 @@ impl<A> Default for Dispatcher<A> {
     fn default() -> Self {
         Self::new()
     }
-} 
+}
 
 impl<A> Dispatcher<A> {
     pub fn new() -> Dispatcher<A> {

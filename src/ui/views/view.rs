@@ -1,5 +1,8 @@
 use crossterm::event::KeyEvent;
-use ratatui::{Frame, prelude::{Layout, Rect}};
+use ratatui::{
+    prelude::Rect,
+    Frame,
+};
 
 use crate::{store::dispatcher::Dispatcher, ui::router::Navigate};
 

@@ -1,10 +1,9 @@
-use anyhow::Result;
 use anyhow::Ok;
+use anyhow::Result;
 pub mod event;
 pub mod models;
 pub mod store;
 pub mod ui;
-pub mod update;
 
 use ui::manager::UiManager;
 
