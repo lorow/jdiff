@@ -29,7 +29,7 @@ impl View for WelcomeVIew {
                 "
                 Welcome! \n\
                 N) - Create new workspace \n\
-                O) - Open saved worksapces 
+                O) - Open saved worksapces
                 Q) - Exit
                 "
                 .to_string(),

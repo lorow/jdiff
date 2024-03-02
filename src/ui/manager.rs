@@ -1,9 +1,6 @@
 use anyhow::Result;
 use crossterm::{
-    event::{
-        DisableMouseCapture, EnableMouseCapture,
-        KeyCode::{self, Char},
-    },
+    event::{DisableMouseCapture, EnableMouseCapture, KeyCode::Char},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
