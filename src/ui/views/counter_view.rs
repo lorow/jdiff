@@ -5,14 +5,11 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 
-use crate::{
-    models::{
-        app_model::AppMode,
-        app_state::{AppState, AppStateActions},
-        counter::CounterModelActions,
-    },
-    store::dispatcher::Dispatcher,
-    ui::router::Navigate,
+use crate::models::{
+    app_model::AppMode,
+    app_state::{AppState, AppStateActions},
+    counter::CounterModelActions,
+    router::RouterModelActions,
 };
 
 use super::view::View;
@@ -52,7 +49,6 @@ impl View for CounterView {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        route_dispatcher: &mut Dispatcher<crate::ui::router::Navigate>,
         app_state: &AppState,
     ) -> Option<AppStateActions> {
         if key_event.kind == KeyEventKind::Press {
@@ -67,7 +63,9 @@ impl View for CounterView {
                 )),
                 Char(';') => {
                     if app_state == AppMode::Normal {
-                        route_dispatcher.dispatch(Navigate::Path("/".into()));
+                        return Some(AppStateActions::RouterModelActions(
+                            RouterModelActions::Route("/".into()),
+                        ));
                     }
                     return None;
                 }

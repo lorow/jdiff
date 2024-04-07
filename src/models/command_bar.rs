@@ -67,7 +67,9 @@ impl CommandBarModel {
             CommandBarModelActions::Reset => {
                 self.input = ":".into();
                 self.cursor_position = 1;
-                Some(AppStateActions::AppModelActions(AppModelActions::ChangeMode(AppMode::Normal)))
+                Some(AppStateActions::AppModelActions(
+                    AppModelActions::ChangeMode(AppMode::Normal),
+                ))
             }
         }
     }

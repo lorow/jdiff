@@ -10,11 +10,7 @@
 //
 // by default, there's only one editor.
 
-use crate::{
-    models::app_state::{AppState, AppStateActions},
-    store::dispatcher::Dispatcher,
-    ui::router::Navigate,
-};
+use crate::models::app_state::{AppState, AppStateActions};
 
 use super::view::View;
 
@@ -33,7 +29,6 @@ impl View for EditorView {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        route_dispatcher: &mut Dispatcher<Navigate>,
         app_state: &AppState,
     ) -> Option<AppStateActions> {
         None

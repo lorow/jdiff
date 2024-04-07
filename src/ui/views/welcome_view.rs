@@ -1,11 +1,8 @@
 use super::view::View;
-use crate::{
-    models::{
-        app_model::AppModelActions,
-        app_state::{AppState, AppStateActions},
-    },
-    store::dispatcher::Dispatcher,
-    ui::router::Navigate,
+use crate::models::{
+    app_model::AppModelActions,
+    app_state::{AppState, AppStateActions},
+    router::RouterModelActions,
 };
 use crossterm::event::KeyCode::Char;
 use ratatui::{
@@ -49,17 +46,15 @@ impl View for WelcomeVIew {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        route_dispatcher: &mut Dispatcher<Navigate>,
         app_state: &AppState,
     ) -> Option<AppStateActions> {
         match key_event.code {
             Char('n') => {
-                route_dispatcher.dispatch(Navigate::Path("/counter".into()));
-                None
+                return Some(AppStateActions::RouterModelActions(
+                    RouterModelActions::Route("/counter".into()),
+                ));
             }
-            Char('q') => {
-                Some(AppStateActions::AppModelActions(AppModelActions::Exit))
-            }
+            Char('q') => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
             _ => None,
         }
     }

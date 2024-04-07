@@ -15,7 +15,6 @@ use ratatui::prelude::*;
 use crate::models::app_model::AppMode;
 use crate::models::app_model::AppModelActions;
 use crate::models::app_state::AppStateActions;
-use crate::store::dispatcher::Dispatcher;
 use crate::ui::views::counter_view::CounterView;
 use crate::{
     event::{Event, EventHandler},
@@ -24,7 +23,6 @@ use crate::{
 
 use super::{
     command_bar::view::CommandBar,
-    router::{Navigate, Router},
     views::{view::View, welcome_view::WelcomeVIew},
 };
 
@@ -45,18 +43,16 @@ impl UiManager {
         install_panic_hook();
         let mut app_state = AppState::new();
         let mut routes_map = HashMap::<String, Box<dyn View>>::new();
-        let mut router = Router::new();
 
         let welcome_view = WelcomeVIew::new();
         routes_map.insert("/".into(), Box::new(welcome_view));
-        router.register_routes(Vec::from_iter(routes_map.keys().cloned()));
+        app_state
+            .router_store
+            .register_routes(Vec::from_iter(routes_map.keys().cloned()));
 
         let mut command_bar = CommandBar::new();
         let counter_view = CounterView::new();
         routes_map.insert("/counter".into(), Box::new(counter_view));
-
-        let mut route_dispatcher = Dispatcher::<Navigate>::new();
-        route_dispatcher.register_store(router);
 
         let mut terminal = setup_terminal()?;
         let events = EventHandler::new(16);
@@ -64,13 +60,7 @@ impl UiManager {
         while !app_state.app_state_store.get_should_quit() {
             match events.next()? {
                 Event::Tick => {
-                    let current_route = {
-                        route_dispatcher
-                            .get_store::<Router>()
-                            .unwrap()
-                            .current_route
-                            .clone()
-                    };
+                    let current_route = app_state.router_store.get_current_route();
                     let view = routes_map.get(&current_route).unwrap().to_owned();
                     terminal.draw(|frame| self.render_ui(frame, view, &command_bar, &app_state))?;
                 }
@@ -95,17 +85,11 @@ impl UiManager {
                                 app_state.update(event);
                             }
                             _ => {
-                                let current_route = {
-                                    route_dispatcher
-                                        .get_store::<Router>()
-                                        .unwrap()
-                                        .current_route
-                                        .clone()
-                                };
+                                let current_route = app_state.router_store.get_current_route();
                                 let event = routes_map
                                     .get_mut(&current_route)
                                     .unwrap()
-                                    .handle_event(&key_event, &mut route_dispatcher, &app_state);
+                                    .handle_event(&key_event, &app_state);
                                 app_state.update(event);
                             }
                         }
