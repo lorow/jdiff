@@ -46,13 +46,15 @@ impl UiManager {
 
         let welcome_view = WelcomeVIew::new();
         routes_map.insert("/".into(), Box::new(welcome_view));
-        app_state
-            .router_store
-            .register_routes(Vec::from_iter(routes_map.keys().cloned()));
-
+       
         let mut command_bar = CommandBar::new();
         let counter_view = CounterView::new();
         routes_map.insert("/counter".into(), Box::new(counter_view));
+
+        app_state
+        .router_store
+        .register_routes(Vec::from_iter(routes_map.keys().cloned()));
+
 
         let mut terminal = setup_terminal()?;
         let events = EventHandler::new(16);
