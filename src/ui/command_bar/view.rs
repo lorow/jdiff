@@ -1,10 +1,9 @@
-use std::sync::{Arc, Mutex};
-
 use crossterm::event::KeyCode::Char;
 
-use crate::{
-    models::app_state::{AppMode, AppState, AppStateActions},
-    store::dispatcher::Dispatcher,
+use crate::models::{
+    app_model::AppMode,
+    app_state::{AppState, AppStateActions},
+    command_bar::{CommandBarModelActions, CursorDirection},
 };
 
 use ratatui::{
@@ -15,33 +14,26 @@ use ratatui::{
     widgets::Paragraph,
 };
 
-// this should also be a proper model tho, with actions adding and handling input and or cursor position
-// and it's state
-pub struct CommandBar {
-    input: String,
-    cursor_position: usize,
-    app_state_dispatcher: Arc<Mutex<Dispatcher<AppStateActions>>>,
-}
+pub struct CommandBar {}
 
 impl CommandBar {
-    pub fn new(app_state_dispatcher: Arc<Mutex<Dispatcher<AppStateActions>>>) -> Self {
-        CommandBar {
-            cursor_position: 1,
-            input: ":".into(),
-            app_state_dispatcher,
-        }
+    pub fn new() -> Self {
+        CommandBar {}
     }
 
-    pub fn render(&self, frame: &mut Frame, rect: Rect) {
-        let app_state_store_mode = {
-            let app_state_dispatcher = self.app_state_dispatcher.lock().unwrap();
-            app_state_dispatcher.get_store::<AppState>().unwrap().mode
-        };
+    pub fn render(&self, frame: &mut Frame, rect: Rect, app_state: &AppState) {
+        let app_state_mode = app_state.app_state_store.get_app_mode();
+        if app_state_mode == AppMode::Command {
+            let (input, cursor_position) = {
+                (
+                    app_state.command_bar_store.get_input(),
+                    app_state.command_bar_store.get_cursor_position(),
+                )
+            };
 
-        if app_state_store_mode == AppMode::Command {
-            let text = Text::from(Line::from(self.input.clone()));
+            let text = Text::from(Line::from(input));
             frame.render_widget(Paragraph::new(text), rect);
-            frame.set_cursor(rect.x + self.cursor_position as u16, rect.y + 1)
+            frame.set_cursor(rect.x + cursor_position as u16, rect.y + 1)
         } else {
             let status_bar_layout = Layout::default()
                 .direction(Direction::Horizontal)
@@ -52,7 +44,7 @@ impl CommandBar {
                 ])
                 .split(rect);
 
-            let (mode_text, mode_color) = match app_state_store_mode {
+            let (mode_text, mode_color) = match app_state_mode {
                 AppMode::Editing => ("Editing", Style::default().bg(Color::Green)),
                 AppMode::Normal => ("Normal", Style::default().bg(Color::Blue)),
                 _ => ("", Style::default()),
@@ -76,66 +68,31 @@ impl CommandBar {
         }
     }
 
-    pub fn handle_event(&mut self, key_event: &crossterm::event::KeyEvent) {
+    pub fn handle_event(
+        &mut self,
+        key_event: &crossterm::event::KeyEvent,
+        app_state: &AppState,
+    ) -> Option<AppStateActions> {
         match key_event.code {
-            Char(data) => {
-                self.input.insert(self.cursor_position, data);
-                self.cursor_position += 1;
-            }
-            crossterm::event::KeyCode::Backspace => {
-                let is_not_leftmost = self.cursor_position != 1;
-
-                if is_not_leftmost {
-                    let current_index = self.cursor_position;
-                    let from_left_to_current_index = current_index - 1;
-
-                    let before_char_to_delete = self.input.chars().take(from_left_to_current_index);
-                    let after_chars_to_delete = self.input.chars().skip(current_index);
-
-                    self.input = before_char_to_delete.chain(after_chars_to_delete).collect();
-                    self.cursor_position -= 1;
-                }
-            }
-            crossterm::event::KeyCode::Enter => self.handle_input(),
-            crossterm::event::KeyCode::Left => {
-                if self.cursor_position > 1 {
-                    self.cursor_position -= 1;
-                }
-            }
-            crossterm::event::KeyCode::Right => {
-                if self.cursor_position < self.input.len() {
-                    self.cursor_position += 1;
-                }
-            }
-            crossterm::event::KeyCode::Esc => {
-                self.app_state_dispatcher
-                    .lock()
-                    .unwrap()
-                    .dispatch(AppStateActions::ChangeMode(AppMode::Normal));
-
-                self.reset_input();
-            }
-            _ => {}
-        }
-    }
-
-    pub fn reset_input(&mut self) {
-        self.input = ":".into();
-        self.cursor_position = 1;
-    }
-
-    pub fn handle_input(&mut self) {
-        let command = self.input.split_off(1);
-        self.reset_input();
-
-        match command.as_str() {
-            "q" | "exit" | "quit" => self
-                .app_state_dispatcher
-                .lock()
-                .unwrap()
-                .dispatch(AppStateActions::Exit),
-            "save" => {}
-            _ => {}
+            Char(data) => Some(AppStateActions::CommandBarActions(
+                CommandBarModelActions::Input(data),
+            )),
+            crossterm::event::KeyCode::Backspace => Some(AppStateActions::CommandBarActions(
+                CommandBarModelActions::Backspace,
+            )),
+            crossterm::event::KeyCode::Enter => Some(AppStateActions::CommandBarActions(
+                CommandBarModelActions::Enter,
+            )),
+            crossterm::event::KeyCode::Left => Some(AppStateActions::CommandBarActions(
+                CommandBarModelActions::MoveCursor(CursorDirection::Left),
+            )),
+            crossterm::event::KeyCode::Right => Some(AppStateActions::CommandBarActions(
+                CommandBarModelActions::MoveCursor(CursorDirection::Right),
+            )),
+            crossterm::event::KeyCode::Esc => Some(AppStateActions::CommandBarActions(
+                CommandBarModelActions::Reset,
+            )),
+            _ => None,
         }
     }
 }

@@ -1,15 +1,3 @@
-use std::sync::{Arc, Mutex};
-
-use crate::{
-    models::{
-        app_state::{AppMode, AppState, AppStateActions},
-        counter::{CounterModel, CounterModelActions},
-    },
-    store::dispatcher::Dispatcher,
-    ui::router::Navigate,
-};
-
-use super::view::View;
 use crossterm::event::{KeyCode::Char, KeyEventKind};
 use ratatui::{
     prelude::{Alignment, Frame, Rect},
@@ -17,28 +5,28 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 
-pub struct CounterView {
-    app_state_dispatcher: Arc<Mutex<Dispatcher<AppStateActions>>>,
-    dispatcher: Arc<Mutex<Dispatcher<CounterModelActions>>>,
-}
+use crate::{
+    models::{
+        app_model::AppMode,
+        app_state::{AppState, AppStateActions},
+        counter::CounterModelActions,
+    },
+    store::dispatcher::Dispatcher,
+    ui::router::Navigate,
+};
+
+use super::view::View;
+
+pub struct CounterView {}
 
 impl CounterView {
-    pub fn new(
-        app_state_dispatcher: Arc<Mutex<Dispatcher<AppStateActions>>>,
-        dispatcher: Arc<Mutex<Dispatcher<CounterModelActions>>>,
-    ) -> Self {
-        CounterView {
-            app_state_dispatcher,
-            dispatcher,
-        }
+    pub fn new() -> Self {
+        CounterView {}
     }
 }
 
 impl View for CounterView {
-    fn render(&self, frame: &mut Frame, rect: Rect) {
-        let dispatcher = self.dispatcher.lock().unwrap();
-        let store = dispatcher.get_store::<CounterModel>().unwrap();
-
+    fn render(&self, frame: &mut Frame, rect: Rect, app_state: &AppState) {
         frame.render_widget(
             Paragraph::new(format!(
                 "
@@ -46,7 +34,7 @@ impl View for CounterView {
             Press `j` and `k` to increment and decrement the counter respectively.\n\
             Counter: {}
           ",
-                store.counter
+                app_state.counter_store.get_counter()
             ))
             .block(
                 Block::default()
@@ -65,23 +53,29 @@ impl View for CounterView {
         &mut self,
         key_event: &crossterm::event::KeyEvent,
         route_dispatcher: &mut Dispatcher<crate::ui::router::Navigate>,
-    ) {
+        app_state: &AppState,
+    ) -> Option<AppStateActions> {
         if key_event.kind == KeyEventKind::Press {
-            let app_state_dispatcher = self.app_state_dispatcher.lock().unwrap();
-            let app_state = app_state_dispatcher.get_store::<AppState>().unwrap();
+            let app_state = app_state.app_state_store.get_app_mode();
 
-            let mut dispatcher = self.dispatcher.lock().unwrap();
-
-            match key_event.code {
-                Char('j') => dispatcher.dispatch(CounterModelActions::Increment),
-                Char('k') => dispatcher.dispatch(CounterModelActions::Decrement),
+            let event: Option<AppStateActions> = match key_event.code {
+                Char('j') => Some(AppStateActions::CounterModelActions(
+                    CounterModelActions::Increment,
+                )),
+                Char('k') => Some(AppStateActions::CounterModelActions(
+                    CounterModelActions::Decrement,
+                )),
                 Char(';') => {
-                    if app_state.mode == AppMode::Normal {
-                        route_dispatcher.dispatch(Navigate::Path("/".into()))
+                    if app_state == AppMode::Normal {
+                        route_dispatcher.dispatch(Navigate::Path("/".into()));
                     }
+                    return None;
                 }
-                _ => {}
-            }
+                _ => None,
+            };
+
+            return event;
         }
+        None
     }
 }

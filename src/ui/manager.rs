@@ -1,35 +1,38 @@
+use std::panic;
+use std::{
+    collections::HashMap,
+    io::{self, Stdout},
+};
+
 use anyhow::Result;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, KeyCode::Char},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::panic;
-use std::{
-    collections::HashMap,
-    io::{self, Stdout},
-    sync::{Arc, Mutex},
-};
+use ratatui::prelude::*;
 
-use crate::models::counter::{CounterModel, CounterModelActions};
+use crate::models::app_model::AppMode;
+use crate::models::app_model::AppModelActions;
+use crate::models::app_state::AppStateActions;
+use crate::store::dispatcher::Dispatcher;
+use crate::ui::views::counter_view::CounterView;
 use crate::{
     event::{Event, EventHandler},
-    models::app_state::{AppMode, AppState, AppStateActions},
+    models::app_state::AppState,
 };
-
-use crate::store::dispatcher::Dispatcher;
-use ratatui::prelude::*;
 
 use super::{
     command_bar::view::CommandBar,
     router::{Navigate, Router},
-    views::{counter_view::CounterView, view::View, welcome_view::WelcomeVIew},
+    views::{view::View, welcome_view::WelcomeVIew},
 };
 
 #[derive(Default)]
 pub struct UiManager {}
 
 // TOOD
+// rewrite router to handle routes elm style
 // ADD a power / status bar thingy
 // add main input handler that handles proper store and passes stuff lower
 
@@ -40,48 +43,25 @@ impl UiManager {
 
     pub fn run(&mut self) -> Result<()> {
         install_panic_hook();
-
-        let app_state_dispatcher = Arc::new(Mutex::new(Dispatcher::<AppStateActions>::new()));
-        app_state_dispatcher
-            .lock()
-            .unwrap()
-            .register_store(AppState::new());
-
-        let counter_model_dispatcher =
-            Arc::new(Mutex::new(Dispatcher::<CounterModelActions>::new()));
-        counter_model_dispatcher
-            .lock()
-            .unwrap()
-            .register_store(CounterModel::new());
-
+        let mut app_state = AppState::new();
         let mut routes_map = HashMap::<String, Box<dyn View>>::new();
-        let mut router_store = Router::new();
+        let mut router = Router::new();
 
-        let mut command_bar = Box::new(CommandBar::new(Arc::clone(&app_state_dispatcher)));
-        let welcome_view = WelcomeVIew::new(Arc::clone(&app_state_dispatcher));
-        let counter_view = CounterView::new(
-            Arc::clone(&app_state_dispatcher),
-            Arc::clone(&counter_model_dispatcher),
-        );
-
+        let welcome_view = WelcomeVIew::new();
         routes_map.insert("/".into(), Box::new(welcome_view));
+        router.register_routes(Vec::from_iter(routes_map.keys().cloned()));
+
+        let mut command_bar = CommandBar::new();
+        let counter_view = CounterView::new();
         routes_map.insert("/counter".into(), Box::new(counter_view));
-        router_store.register_routes(Vec::from_iter(routes_map.keys().cloned()));
 
         let mut route_dispatcher = Dispatcher::<Navigate>::new();
-        route_dispatcher.register_store(router_store);
+        route_dispatcher.register_store(router);
 
         let mut terminal = setup_terminal()?;
-        let events = EventHandler::new(100);
+        let events = EventHandler::new(16);
 
-        while !{
-            app_state_dispatcher
-                .lock()
-                .unwrap()
-                .get_store::<AppState>()
-                .unwrap_or(&AppState::exit_model())
-                .should_quit
-        } {
+        while !app_state.app_state_store.get_should_quit() {
             match events.next()? {
                 Event::Tick => {
                     let current_route = {
@@ -92,33 +72,27 @@ impl UiManager {
                             .clone()
                     };
                     let view = routes_map.get(&current_route).unwrap().to_owned();
-                    terminal.draw(|frame| self.render_ui(frame, view, &command_bar))?;
+                    terminal.draw(|frame| self.render_ui(frame, view, &command_bar, &app_state))?;
                 }
                 Event::Key(key_event) => match key_event.code {
                     input_keycode => {
-                        let app_mode = {
-                            app_state_dispatcher
-                                .lock()
-                                .unwrap()
-                                .get_store::<AppState>()
-                                .unwrap()
-                                .mode
-                        };
+                        let app_mode = app_state.app_state_store.get_app_mode();
 
                         // if we get a signal : and we're in normal, we should change into command mode
                         match (input_keycode, app_mode) {
                             (Char(':'), AppMode::Normal) => {
-                                app_state_dispatcher
-                                    .lock()
-                                    .unwrap()
-                                    .dispatch(AppStateActions::ChangeMode(AppMode::Command));
+                                app_state.update(Some(AppStateActions::AppModelActions(
+                                    AppModelActions::ChangeMode(AppMode::Command),
+                                )))
                             }
                             _ => {}
                         }
+
                         // otherwise, we pipe every input into the proper view
                         match app_mode {
                             AppMode::Command => {
-                                command_bar.handle_event(&key_event);
+                                let event = command_bar.handle_event(&key_event, &app_state);
+                                app_state.update(event);
                             }
                             _ => {
                                 let current_route = {
@@ -128,10 +102,11 @@ impl UiManager {
                                         .current_route
                                         .clone()
                                 };
-                                routes_map
+                                let event = routes_map
                                     .get_mut(&current_route)
                                     .unwrap()
-                                    .handle_event(&key_event, &mut route_dispatcher);
+                                    .handle_event(&key_event, &mut route_dispatcher, &app_state);
+                                app_state.update(event);
                             }
                         }
                     }
@@ -145,14 +120,20 @@ impl UiManager {
         restore_terminal(&mut terminal)
     }
 
-    fn render_ui(&self, frame: &mut Frame, view: &Box<dyn View>, command_bar: &Box<CommandBar>) {
+    fn render_ui(
+        &self,
+        frame: &mut Frame,
+        view: &Box<dyn View>,
+        command_bar: &CommandBar,
+        app_state: &AppState,
+    ) {
         let main_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(100), Constraint::Min(1)])
             .split(frame.size());
 
-        view.render(frame, main_layout[0]);
-        command_bar.render(frame, main_layout[1]);
+        view.render(frame, main_layout[0], app_state);
+        command_bar.render(frame, main_layout[1], app_state);
     }
 }
 

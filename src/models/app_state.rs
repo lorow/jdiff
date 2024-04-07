@@ -1,44 +1,42 @@
-use crate::store::dispatcher::Store;
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum AppMode {
-    #[default]
-    Normal,
-    Editing,
-    Command,
-}
+use super::{
+    app_model::{AppModel, AppModelActions},
+    command_bar::{CommandBarModel, CommandBarModelActions},
+    counter::{CounterModel, CounterModelActions},
+};
 
 pub enum AppStateActions {
-    ChangeMode(AppMode),
-    Exit,
+    AppModelActions(AppModelActions),
+    CounterModelActions(CounterModelActions),
+    CommandBarActions(CommandBarModelActions),
 }
 
 #[derive(Debug, Default)]
 pub struct AppState {
-    pub should_quit: bool,
-    pub mode: AppMode,
-}
-
-impl Store for AppState {
-    type Action = AppStateActions;
-
-    fn handle(&mut self, action: &Self::Action) {
-        match action {
-            AppStateActions::ChangeMode(mode) => self.mode = *mode,
-            AppStateActions::Exit => self.should_quit = true,
-        }
-    }
+    pub app_state_store: AppModel,
+    pub counter_store: CounterModel,
+    pub command_bar_store: CommandBarModel,
 }
 
 impl AppState {
-    pub fn new() -> Self {
-        AppState::default()
+    pub fn update(&mut self, message: Option<AppStateActions>) {
+        let mut action_to_resolve = message;
+
+        while let Some(action) = action_to_resolve {
+            match action {
+                AppStateActions::AppModelActions(model_action) => {
+                    action_to_resolve = self.app_state_store.update(model_action)
+                }
+                AppStateActions::CounterModelActions(model_action) => {
+                    action_to_resolve = self.counter_store.update(model_action)
+                }
+                AppStateActions::CommandBarActions(model_action) => {
+                    action_to_resolve = self.command_bar_store.update(model_action)
+                }
+            }
+        }
     }
 
-    pub fn exit_model() -> Self {
-        AppState {
-            should_quit: true,
-            ..Default::default()
-        }
+    pub fn new() -> Self {
+        AppState::default()
     }
 }

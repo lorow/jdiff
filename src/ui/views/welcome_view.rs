@@ -1,29 +1,29 @@
 use super::view::View;
 use crate::{
-    models::app_state::AppStateActions, store::dispatcher::Dispatcher, ui::router::Navigate,
+    models::{
+        app_model::AppModelActions,
+        app_state::{AppState, AppStateActions},
+    },
+    store::dispatcher::Dispatcher,
+    ui::router::Navigate,
 };
 use crossterm::event::KeyCode::Char;
 use ratatui::{
     prelude::{Alignment, Rect},
     widgets::{Block, BorderType, Borders, Paragraph},
 };
-use std::sync::{Arc, Mutex};
 
 #[derive(Default)]
-pub struct WelcomeVIew {
-    app_state_dispatcher: Arc<Mutex<Dispatcher<AppStateActions>>>,
-}
+pub struct WelcomeVIew {}
 
 impl WelcomeVIew {
-    pub fn new(app_state_dispatcher: Arc<Mutex<Dispatcher<AppStateActions>>>) -> Self {
-        WelcomeVIew {
-            app_state_dispatcher,
-        }
+    pub fn new() -> Self {
+        WelcomeVIew {}
     }
 }
 
 impl View for WelcomeVIew {
-    fn render(&self, frame: &mut ratatui::Frame, rect: Rect) {
+    fn render(&self, frame: &mut ratatui::Frame, rect: Rect, app_state: &AppState) {
         frame.render_widget(
             Paragraph::new(
                 "
@@ -49,14 +49,18 @@ impl View for WelcomeVIew {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        route_dispatcher: &mut crate::store::dispatcher::Dispatcher<crate::ui::router::Navigate>,
-    ) {
-        let mut app_state_dispatcher = self.app_state_dispatcher.lock().unwrap();
-
+        route_dispatcher: &mut Dispatcher<Navigate>,
+        app_state: &AppState,
+    ) -> Option<AppStateActions> {
         match key_event.code {
-            Char('n') => route_dispatcher.dispatch(Navigate::Path("/counter".into())),
-            Char('q') => app_state_dispatcher.dispatch(AppStateActions::Exit),
-            _ => {}
+            Char('n') => {
+                route_dispatcher.dispatch(Navigate::Path("/counter".into()));
+                None
+            }
+            Char('q') => {
+                Some(AppStateActions::AppModelActions(AppModelActions::Exit))
+            }
+            _ => None,
         }
     }
 }
