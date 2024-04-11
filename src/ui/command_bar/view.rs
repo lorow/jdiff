@@ -1,9 +1,12 @@
 use crossterm::event::KeyCode::Char;
 
-use crate::models::{
-    app_model::AppMode,
-    app_state::{AppState, AppStateActions},
-    command_bar::{CommandBarModelActions, CursorDirection},
+use crate::{
+    models::{
+        app_model::AppMode,
+        app_state::{AppState, AppStateActions},
+        command_bar::{CommandBarModelActions, CursorDirection},
+    },
+    ui::views::view::View,
 };
 
 use ratatui::{
@@ -20,8 +23,10 @@ impl CommandBar {
     pub fn new() -> Self {
         CommandBar {}
     }
+}
 
-    pub fn render(&self, frame: &mut Frame, rect: Rect, app_state: &AppState) {
+impl View for CommandBar {
+    fn render(&self, frame: &mut Frame, rect: Rect, app_state: &AppState) {
         let app_state_mode = app_state.app_state_store.get_app_mode();
         if app_state_mode == AppMode::Command {
             let (input, cursor_position) = {
@@ -68,9 +73,11 @@ impl CommandBar {
         }
     }
 
-    pub fn handle_event(
+    fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
+        is_ctrl_pressed: bool,
+        is_shift_pressed: bool,
         app_state: &AppState,
     ) -> Option<AppStateActions> {
         match key_event.code {

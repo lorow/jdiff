@@ -49,6 +49,8 @@ impl View for CounterView {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
+        is_ctrl_pressed: bool,
+        is_shift_pressed: bool,
         app_state: &AppState,
     ) -> Option<AppStateActions> {
         if key_event.kind == KeyEventKind::Press {

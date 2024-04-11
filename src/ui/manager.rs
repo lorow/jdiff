@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::Result;
+use crossterm::event::KeyModifiers;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, KeyCode::Char},
     execute,
@@ -46,15 +47,14 @@ impl UiManager {
 
         let welcome_view = WelcomeVIew::new();
         routes_map.insert("/".into(), Box::new(welcome_view));
-       
+
         let mut command_bar = CommandBar::new();
         let counter_view = CounterView::new();
         routes_map.insert("/counter".into(), Box::new(counter_view));
 
         app_state
-        .router_store
-        .register_routes(Vec::from_iter(routes_map.keys().cloned()));
-
+            .router_store
+            .register_routes(Vec::from_iter(routes_map.keys().cloned()));
 
         let mut terminal = setup_terminal()?;
         let events = EventHandler::new(16);
@@ -68,6 +68,8 @@ impl UiManager {
                 }
                 Event::Key(key_event) => match key_event.code {
                     input_keycode => {
+                        let is_ctrl_pressed = key_event.modifiers == KeyModifiers::CONTROL;
+                        let is_shift_pressed = key_event.modifiers == KeyModifiers::SHIFT;
                         let app_mode = app_state.app_state_store.get_app_mode();
 
                         // if we get a signal : and we're in normal, we should change into command mode
@@ -83,15 +85,23 @@ impl UiManager {
                         // otherwise, we pipe every input into the proper view
                         match app_mode {
                             AppMode::Command => {
-                                let event = command_bar.handle_event(&key_event, &app_state);
+                                let event = command_bar.handle_event(
+                                    &key_event,
+                                    is_ctrl_pressed,
+                                    is_shift_pressed,
+                                    &app_state,
+                                );
                                 app_state.update(event);
                             }
                             _ => {
                                 let current_route = app_state.router_store.get_current_route();
-                                let event = routes_map
-                                    .get_mut(&current_route)
-                                    .unwrap()
-                                    .handle_event(&key_event, &app_state);
+                                let event =
+                                    routes_map.get_mut(&current_route).unwrap().handle_event(
+                                        &key_event,
+                                        is_ctrl_pressed,
+                                        is_shift_pressed,
+                                        &app_state,
+                                    );
                                 app_state.update(event);
                             }
                         }

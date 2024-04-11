@@ -2,6 +2,7 @@ use super::{
     app_model::{AppModel, AppModelActions},
     command_bar::{CommandBarModel, CommandBarModelActions},
     counter::{CounterModel, CounterModelActions},
+    editor_model::{EditorContainerModel, EditorContainerModelActions},
     router::{RouterModel, RouterModelActions},
 };
 
@@ -10,6 +11,7 @@ pub enum AppStateActions {
     CounterModelActions(CounterModelActions),
     CommandBarActions(CommandBarModelActions),
     RouterModelActions(RouterModelActions),
+    EditorActions(EditorContainerModelActions),
 }
 
 #[derive(Debug, Default)]
@@ -18,6 +20,7 @@ pub struct AppState {
     pub counter_store: CounterModel,
     pub command_bar_store: CommandBarModel,
     pub router_store: RouterModel,
+    pub editor_store: EditorContainerModel,
 }
 
 impl AppState {
@@ -37,6 +40,9 @@ impl AppState {
                 }
                 AppStateActions::RouterModelActions(model_action) => {
                     action_to_resolve = self.router_store.update(model_action)
+                }
+                AppStateActions::EditorActions(model_action) => {
+                    action_to_resolve = self.editor_store.update(model_action)
                 }
             }
         }

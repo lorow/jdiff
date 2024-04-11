@@ -46,6 +46,8 @@ impl View for WelcomeVIew {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
+        is_ctrl_pressed: bool,
+        is_shift_pressed: bool,
         app_state: &AppState,
     ) -> Option<AppStateActions> {
         match key_event.code {
