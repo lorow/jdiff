@@ -16,7 +16,6 @@ use ratatui::prelude::*;
 use crate::models::app_model::AppMode;
 use crate::models::app_model::AppModelActions;
 use crate::models::app_state::AppStateActions;
-use crate::ui::views::counter_view::CounterView;
 use crate::{
     event::{Event, EventHandler},
     models::app_state::AppState,
@@ -49,8 +48,6 @@ impl UiManager {
         routes_map.insert("/".into(), Box::new(welcome_view));
 
         let mut command_bar = CommandBar::new();
-        let counter_view = CounterView::new();
-        routes_map.insert("/counter".into(), Box::new(counter_view));
 
         app_state
             .router_store

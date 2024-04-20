@@ -53,7 +53,7 @@ impl View for WelcomeVIew {
         match key_event.code {
             Char('n') => {
                 return Some(AppStateActions::RouterModelActions(
-                    RouterModelActions::Route("/counter".into()),
+                    RouterModelActions::Route("/editor".into()),
                 ));
             }
             Char('q') => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
