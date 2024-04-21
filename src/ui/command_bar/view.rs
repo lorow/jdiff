@@ -43,9 +43,9 @@ impl View for CommandBar {
             let status_bar_layout = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([
-                    Constraint::Min(10),
+                    Constraint::Max(10),
                     Constraint::Percentage(90),
-                    Constraint::Min(15),
+                    Constraint::Max(15),
                 ])
                 .split(rect);
 

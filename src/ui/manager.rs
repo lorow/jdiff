@@ -21,6 +21,7 @@ use crate::{
     models::app_state::AppState,
 };
 
+use super::views::editor_view::EditorView;
 use super::{
     command_bar::view::CommandBar,
     views::{view::View, welcome_view::WelcomeVIew},
@@ -46,6 +47,9 @@ impl UiManager {
 
         let welcome_view = WelcomeVIew::new();
         routes_map.insert("/".into(), Box::new(welcome_view));
+
+        let editor_view = EditorView::new();
+        routes_map.insert("/editor".into(), Box::new(editor_view));
 
         let mut command_bar = CommandBar::new();
 
@@ -124,7 +128,6 @@ impl UiManager {
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(100), Constraint::Min(1)])
             .split(frame.size());
-
         view.render(frame, main_layout[0], app_state);
         command_bar.render(frame, main_layout[1], app_state);
     }
