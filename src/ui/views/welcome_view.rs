@@ -46,16 +46,14 @@ impl View for WelcomeVIew {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        is_ctrl_pressed: bool,
-        is_shift_pressed: bool,
-        app_state: &AppState,
+        _is_ctrl_pressed: bool,
+        _is_shift_pressed: bool,
+        _app_state: &AppState,
     ) -> Option<AppStateActions> {
         match key_event.code {
-            Char('n') => {
-                return Some(AppStateActions::RouterModelActions(
-                    RouterModelActions::Route("/editor".into()),
-                ));
-            }
+            Char('n') => Some(AppStateActions::RouterModelActions(
+                RouterModelActions::Route("/editor".into()),
+            )),
             Char('q') => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
             _ => None,
         }

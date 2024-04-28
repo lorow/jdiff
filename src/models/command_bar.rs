@@ -87,7 +87,9 @@ impl CommandBarModel {
         match command {
             "q" | "exit" | "quit" => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
             "save" => None,
-            _ => None,
+            _ => Some(AppStateActions::AppModelActions(
+                AppModelActions::ChangeMode(AppMode::Normal),
+            )),
         }
     }
 

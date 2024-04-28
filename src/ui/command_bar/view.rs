@@ -17,11 +17,12 @@ use ratatui::{
     widgets::Paragraph,
 };
 
+#[derive(Default)]
 pub struct CommandBar {}
 
 impl CommandBar {
     pub fn new() -> Self {
-        CommandBar {}
+        Default::default()
     }
 }
 

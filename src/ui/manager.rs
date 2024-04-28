@@ -67,47 +67,43 @@ impl UiManager {
                     let view = routes_map.get(&current_route).unwrap().to_owned();
                     terminal.draw(|frame| self.render_ui(frame, view, &command_bar, &app_state))?;
                 }
-                Event::Key(key_event) => match key_event.code {
-                    input_keycode => {
-                        let is_ctrl_pressed = key_event.modifiers == KeyModifiers::CONTROL;
-                        let is_shift_pressed = key_event.modifiers == KeyModifiers::SHIFT;
-                        let app_mode = app_state.app_state_store.get_app_mode();
+                Event::Key(key_event) => {
+                    let input_keycode = key_event.code;
 
-                        // if we get a signal : and we're in normal, we should change into command mode
-                        match (input_keycode, app_mode) {
-                            (Char(':'), AppMode::Normal) => {
-                                app_state.update(Some(AppStateActions::AppModelActions(
-                                    AppModelActions::ChangeMode(AppMode::Command),
-                                )))
-                            }
-                            _ => {}
+                    let is_ctrl_pressed = key_event.modifiers == KeyModifiers::CONTROL;
+                    let is_shift_pressed = key_event.modifiers == KeyModifiers::SHIFT;
+                    let app_mode = app_state.app_state_store.get_app_mode();
+
+                    // if we get a signal : and we're in normal, we should change into command mode
+                    if let (Char(':'), AppMode::Normal) = (input_keycode, app_mode) {
+                        app_state.update(Some(AppStateActions::AppModelActions(
+                            AppModelActions::ChangeMode(AppMode::Command),
+                        )))
+                    }
+
+                    // otherwise, we pipe every input into the proper view
+                    match app_mode {
+                        AppMode::Command => {
+                            let event = command_bar.handle_event(
+                                &key_event,
+                                is_ctrl_pressed,
+                                is_shift_pressed,
+                                &app_state,
+                            );
+                            app_state.update(event);
                         }
-
-                        // otherwise, we pipe every input into the proper view
-                        match app_mode {
-                            AppMode::Command => {
-                                let event = command_bar.handle_event(
-                                    &key_event,
-                                    is_ctrl_pressed,
-                                    is_shift_pressed,
-                                    &app_state,
-                                );
-                                app_state.update(event);
-                            }
-                            _ => {
-                                let current_route = app_state.router_store.get_current_route();
-                                let event =
-                                    routes_map.get_mut(&current_route).unwrap().handle_event(
-                                        &key_event,
-                                        is_ctrl_pressed,
-                                        is_shift_pressed,
-                                        &app_state,
-                                    );
-                                app_state.update(event);
-                            }
+                        _ => {
+                            let current_route = app_state.router_store.get_current_route();
+                            let event = routes_map.get_mut(&current_route).unwrap().handle_event(
+                                &key_event,
+                                is_ctrl_pressed,
+                                is_shift_pressed,
+                                &app_state,
+                            );
+                            app_state.update(event);
                         }
                     }
-                },
+                }
                 Event::Mouse(_) => {}
                 Event::Resize(_, _) => {}
                 Event::Paste(_) => {}

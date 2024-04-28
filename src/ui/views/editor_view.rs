@@ -11,13 +11,17 @@
 // by default, there's only one editor.
 
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect}, style::{Color, Style, Styled}, text::{Line, Text}, widgets::Paragraph, Frame
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Style},
+    text::{Line, Text},
+    widgets::Paragraph,
+    Frame,
 };
 
 use crate::models::{
-    app_model::AppModelActions,
+    app_model::{AppMode, AppModelActions},
     app_state::{AppState, AppStateActions},
-    editor_model::EditorModel,
+    editor_model::{EditorContainerModelActions, EditorModel},
 };
 
 use super::view::View;
@@ -38,7 +42,6 @@ impl View for EditorView {
         layout: ratatui::prelude::Rect,
         app_state: &AppState,
     ) {
-      
         let editors = app_state.editor_store.get_editors();
         let current_percentage = if editors.len() == 2 { 50 } else { 100 };
 
@@ -49,20 +52,36 @@ impl View for EditorView {
                 Constraint::Percentage(100 - current_percentage),
             ])
             .split(layout);
-        
+
         for (index, editor) in editors.iter().enumerate() {
             self.render_editor(frame, editors_container_layout[index], app_state, editor);
         }
-        
     }
 
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        is_ctrl_pressed: bool,
-        is_shift_pressed: bool,
-        app_state: &AppState,
+        _is_ctrl_pressed: bool,
+        _is_shift_pressed: bool,
+        _app_state: &AppState,
     ) -> Option<AppStateActions> {
+        if key_event.code == crossterm::event::KeyCode::Char('i') {
+            return Some(AppStateActions::AppModelActions(
+                AppModelActions::ChangeMode(AppMode::Editing),
+            ));
+        }
+
+        if key_event.code == crossterm::event::KeyCode::Esc {
+            return Some(AppStateActions::AppModelActions(
+                AppModelActions::ChangeMode(AppMode::Normal),
+            ));
+        }
+
+        if key_event.code == crossterm::event::KeyCode::Enter {
+            return Some(AppStateActions::EditorActions(
+                EditorContainerModelActions::Enter,
+            ));
+        }
         Some(AppStateActions::AppModelActions(AppModelActions::Exit))
     }
 }
@@ -72,35 +91,38 @@ impl EditorView {
         &self,
         frame: &mut Frame,
         layout: Rect,
-        app_state: &AppState,
+        _app_state: &AppState,
         editor: &EditorModel,
     ) {
         let editor_visible_lines = editor.get_visible_lines();
         let mut constaints = vec![Constraint::Max(1); editor.get_visible_lines().len() + 1];
         constaints.push(Constraint::Max(1));
-        
+
         let editor_lines_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints(constaints)
             .split(layout);
 
-        
-        for (index, line_data) in editor_visible_lines.iter().enumerate() { 
+        for (index, line_data) in editor_visible_lines.iter().enumerate() {
             let line_layout = Layout::default()
                 .direction(Direction::Horizontal)
                 // [1]gap[text]
-                .constraints([Constraint::Min(3), Constraint::Min(1),Constraint::Percentage(100)])
+                .constraints([
+                    Constraint::Min(3),
+                    Constraint::Min(1),
+                    Constraint::Percentage(100),
+                ])
                 .split(editor_lines_layout[index]);
-            let number_widget = Text::from(Line::from(line_data.0.to_string())); 
+            let number_widget = Text::from(Line::from(line_data.0.to_string()));
             let number_paragraph = Paragraph::new(number_widget)
                 .alignment(Alignment::Center)
                 .style(Style::default().bg(Color::DarkGray));
-            
+
             let text_widget = Text::from(Line::from(line_data.1.to_string()));
             let text_paragraph = Paragraph::new(text_widget).alignment(Alignment::Left);
-            
-            frame.render_widget(number_paragraph,line_layout[0]);
+
+            frame.render_widget(number_paragraph, line_layout[0]);
             frame.render_widget(text_paragraph, line_layout[2]);
         }
-   }
+    }
 }
