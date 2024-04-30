@@ -1,4 +1,7 @@
+use std::cmp::min;
+
 use crossterm::event::KeyEvent;
+use ratatui::layout::Rect;
 
 use super::app_state::AppStateActions;
 
@@ -29,7 +32,8 @@ type EditorLine = (LineNumber, String);
 #[derive(Debug)]
 pub struct EditorModel {
     data: Vec<EditorLine>,
-    visible_lines: Vec<EditorLine>,
+    current_size: Rect,
+    visible_lines: (u16, u16),
     cursor_position: (u16, u16),
 }
 
@@ -37,7 +41,10 @@ impl Default for EditorModel {
     fn default() -> Self {
         EditorModel {
             data: Vec::from([(1, String::from("awdawd"))]),
-            visible_lines: Vec::from([(1, String::from("awdawd"))]),
+            // TODO I need to somehow pass the size here
+            // TODO how though?
+            current_size: Rect::default(),
+            visible_lines: (0, 1),
             cursor_position: (0, 0),
         }
     }
@@ -45,7 +52,7 @@ impl Default for EditorModel {
 
 impl EditorModel {
     pub fn get_visible_lines(&self) -> Vec<EditorLine> {
-        self.visible_lines.clone()
+        self.data[self.visible_lines.0 as usize..self.visible_lines.1 as usize].to_vec()
     }
 
     pub fn add_line(&mut self) {
@@ -53,23 +60,41 @@ impl EditorModel {
         let last_line_number = self.data[position].0;
         self.data
             .insert(position + 1, (last_line_number + 1, String::from("")));
-        self.update_visible_lines();
-        self.cursor_position.0 += 1;
+
+        self.data
+            .iter_mut()
+            .skip(position + 2)
+            .for_each(|line| line.0 += 1);
+
+        self.cursor_position.1 += 1;
+        self.update_visible_lines(1);
     }
 
     pub fn delete_line(&mut self) {
         let position = self.cursor_position.0 as usize;
         self.data.remove(position);
-        self.update_visible_lines();
-        self.cursor_position.0 -= 1;
+        self.cursor_position.1 -= 1;
+        self.update_visible_lines(-1);
     }
 
-    fn update_visible_lines(&mut self) {
-        // todo, this is not how its supposed to work,
-        // we should take the screen line height from the rect and treat that as our window
-        // then based on cursor position we shoudld update the visible_lines
-        // better yet, this should be like a range, instead of data
-        self.visible_lines = self.data.clone();
+    fn update_visible_lines(&mut self, direction: i16) {
+        if self.data.len() >= self.current_size.height.into() {
+            self.visible_lines = (0, self.data.len() as u16);
+        } else {
+            match direction {
+                1 => {
+                    self.visible_lines.0 += 1;
+                    self.visible_lines.1 += 1;
+                }
+                -1 => {
+                    self.visible_lines.0 -= 1;
+                    self.visible_lines.1 -= 1;
+                }
+                _ => {}
+            }
+            self.visible_lines.1 = min(self.visible_lines.1, self.data.len() as u16);
+        }
+        print!("{:?}", self.visible_lines);
     }
 }
 
@@ -91,7 +116,7 @@ impl Default for EditorContainerModel {
 impl EditorContainerModel {
     pub fn update(&mut self, action: EditorContainerModelActions) -> Option<AppStateActions> {
         match action {
-            EditorContainerModelActions::Input(_) => None,
+            EditorContainerModelActions::Input(c) => None,
             EditorContainerModelActions::Enter => {
                 self.editors[self.active_editor_index as usize].add_line();
                 None
@@ -116,5 +141,13 @@ impl EditorContainerModel {
 
     pub fn get_editors(&self) -> &Vec<EditorModel> {
         &self.editors
+    }
+
+    pub fn get_active_editor_index(&self) -> u16 {
+        self.active_editor_index
+    }
+
+    pub fn get_active_cursor_position(&self) -> (u16, u16) {
+        self.editors[self.active_editor_index as usize].cursor_position
     }
 }

@@ -10,6 +10,7 @@
 //
 // by default, there's only one editor.
 
+use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
@@ -56,6 +57,18 @@ impl View for EditorView {
         for (index, editor) in editors.iter().enumerate() {
             self.render_editor(frame, editors_container_layout[index], app_state, editor);
         }
+
+        if app_state.app_state_store.get_app_mode() == AppMode::Editing {
+            let side_rect_used =
+                editors_container_layout[app_state.editor_store.get_active_editor_index() as usize];
+            let cursor_position = app_state.editor_store.get_active_cursor_position();
+
+            frame.set_cursor(
+                // 4 is the line length, move that to a const
+                side_rect_used.x + 4 + cursor_position.0,
+                side_rect_used.y + cursor_position.1,
+            )
+        }
     }
 
     fn handle_event(
@@ -63,26 +76,27 @@ impl View for EditorView {
         key_event: &crossterm::event::KeyEvent,
         _is_ctrl_pressed: bool,
         _is_shift_pressed: bool,
-        _app_state: &AppState,
+        app_state: &AppState,
     ) -> Option<AppStateActions> {
-        if key_event.code == crossterm::event::KeyCode::Char('i') {
-            return Some(AppStateActions::AppModelActions(
-                AppModelActions::ChangeMode(AppMode::Editing),
-            ));
-        }
-
-        if key_event.code == crossterm::event::KeyCode::Esc {
-            return Some(AppStateActions::AppModelActions(
+        match key_event.code {
+            crossterm::event::KeyCode::Char(c) => {
+                if c == 'i' && app_state.app_state_store.get_app_mode() == AppMode::Normal {
+                    return Some(AppStateActions::AppModelActions(
+                        AppModelActions::ChangeMode(AppMode::Editing),
+                    ));
+                }
+                Some(AppStateActions::EditorActions(
+                    EditorContainerModelActions::Input(c),
+                ))
+            }
+            crossterm::event::KeyCode::Esc => Some(AppStateActions::AppModelActions(
                 AppModelActions::ChangeMode(AppMode::Normal),
-            ));
-        }
-
-        if key_event.code == crossterm::event::KeyCode::Enter {
-            return Some(AppStateActions::EditorActions(
+            )),
+            crossterm::event::KeyCode::Enter => Some(AppStateActions::EditorActions(
                 EditorContainerModelActions::Enter,
-            ));
+            )),
+            _ => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
         }
-        Some(AppStateActions::AppModelActions(AppModelActions::Exit))
     }
 }
 

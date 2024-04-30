@@ -69,7 +69,6 @@ impl View for CommandBar {
             let lines_widget = Paragraph::new(lines_widget)
                 .alignment(Alignment::Center)
                 .style(Style::default().bg(Color::Blue));
-
             frame.render_widget(lines_widget, status_bar_layout[2]);
         }
     }
