@@ -10,7 +10,6 @@
 //
 // by default, there's only one editor.
 
-use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
@@ -97,6 +96,36 @@ impl View for EditorView {
             )),
             _ => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
         }
+    }
+
+    fn get_has_been_initialized(&self, app_state: &AppState) -> bool {
+        app_state.editor_store.get_is_initialized()
+    }
+
+    fn get_has_been_resized(&self, app_state: &AppState) -> bool {
+        app_state.editor_store.get_is_resized_set()
+    }
+
+    fn init(
+        &mut self,
+        frame: &mut Frame,
+        rect: Rect,
+        app_state: &AppState,
+    ) -> Option<AppStateActions> {
+        Some(AppStateActions::EditorActions(
+            EditorContainerModelActions::InitEditor(rect),
+        ))
+    }
+
+    fn handle_resize(
+        &mut self,
+        frame: &mut Frame,
+        rect: Rect,
+        app_state: &AppState,
+    ) -> Option<AppStateActions> {
+        Some(AppStateActions::EditorActions(
+            EditorContainerModelActions::ResizeEditor(rect),
+        ))
     }
 }
 

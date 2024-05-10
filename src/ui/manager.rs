@@ -15,7 +15,7 @@ use ratatui::prelude::*;
 
 use crate::models::app_model::AppMode;
 use crate::models::app_model::AppModelActions;
-use crate::models::app_state::AppStateActions;
+use crate::models::app_state::{AppStateActions, BaseActions};
 use crate::{
     event::{Event, EventHandler},
     models::app_state::AppState,
@@ -31,8 +31,6 @@ use super::{
 pub struct UiManager {}
 
 // TOOD
-// rewrite router to handle routes elm style
-// ADD a power / status bar thingy
 // add main input handler that handles proper store and passes stuff lower
 
 impl UiManager {
@@ -64,8 +62,9 @@ impl UiManager {
             match events.next()? {
                 Event::Tick => {
                     let current_route = app_state.router_store.get_current_route();
-                    let view = routes_map.get(&current_route).unwrap().to_owned();
-                    terminal.draw(|frame| self.render_ui(frame, view, &command_bar, &app_state))?;
+                    let view = routes_map.get_mut(&current_route).unwrap();
+                    terminal
+                        .draw(|frame| self.render_ui(frame, view, &command_bar, &mut app_state))?;
                 }
                 Event::Key(key_event) => {
                     let input_keycode = key_event.code;
@@ -80,8 +79,6 @@ impl UiManager {
                             AppModelActions::ChangeMode(AppMode::Command),
                         )))
                     }
-
-                    // otherwise, we pipe every input into the proper view
                     match app_mode {
                         AppMode::Command => {
                             let event = command_bar.handle_event(
@@ -92,6 +89,7 @@ impl UiManager {
                             );
                             app_state.update(event);
                         }
+                        // otherwise, we pipe every input into the proper view
                         _ => {
                             let current_route = app_state.router_store.get_current_route();
                             let event = routes_map.get_mut(&current_route).unwrap().handle_event(
@@ -105,7 +103,9 @@ impl UiManager {
                     }
                 }
                 Event::Mouse(_) => {}
-                Event::Resize(_, _) => {}
+                Event::Resize(_, _) => {
+                    app_state.update(Some(AppStateActions::BaseAppActions(BaseActions::Resized)))
+                }
                 Event::Paste(_) => {}
             };
         }
@@ -116,15 +116,30 @@ impl UiManager {
     fn render_ui(
         &self,
         frame: &mut Frame,
-        view: &Box<dyn View>,
+        view: &mut Box<dyn View>,
         command_bar: &CommandBar,
-        app_state: &AppState,
+        app_state: &mut AppState,
     ) {
         let main_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(100), Constraint::Min(1)])
             .split(frame.size());
-        view.render(frame, main_layout[0], app_state);
+
+        let rect = main_layout[0];
+        // technically, we should not be initializing
+        // stuff on the first render, or when it was not initialized yez
+        // but some models require frames to work, and here's the only place to get them
+        // this also places a problem, what to do when we resize the terminal?
+        if !view.get_has_been_initialized(&app_state) {
+            app_state.update(view.init(frame, rect, &app_state));
+        }
+
+        if view.get_has_been_resized(app_state) {
+            app_state.update(view.handle_resize(frame, rect, app_state));
+        }
+
+        let view = view;
+        view.render(frame, rect, app_state);
         command_bar.render(frame, main_layout[1], app_state);
     }
 }

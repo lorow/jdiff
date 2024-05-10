@@ -1,4 +1,7 @@
-use crate::models::{app_model::AppModelActions, app_state::AppStateActions};
+use crate::models::{
+    app_model::AppModelActions, app_state::AppStateActions,
+    editor_model::EditorContainerModelActions,
+};
 
 use super::app_model::AppMode;
 
@@ -62,14 +65,12 @@ impl CommandBarModel {
                 let input = self.get_input();
                 let command = input.to_string().split_off(1);
 
+                self.reset_input();
                 self.handle_input(&command)
             }
             CommandBarModelActions::Reset => {
-                self.input = ":".into();
-                self.cursor_position = 1;
-                Some(AppStateActions::AppModelActions(
-                    AppModelActions::ChangeMode(AppMode::Normal),
-                ))
+                self.reset_input();
+                None
             }
         }
     }
@@ -78,18 +79,23 @@ impl CommandBarModel {
         &self.input
     }
 
+    pub fn reset_input(&mut self) {
+        self.input = ":".into();
+        self.cursor_position = 1;
+    }
+
     pub fn get_cursor_position(&self) -> usize {
         self.cursor_position
     }
 
     pub fn handle_input(&self, command: &str) -> Option<AppStateActions> {
-        print!("{}", command);
         match command {
             "q" | "exit" | "quit" => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
             "save" => None,
-            _ => Some(AppStateActions::AppModelActions(
-                AppModelActions::ChangeMode(AppMode::Normal),
+            "add_editor" => Some(AppStateActions::EditorActions(
+                EditorContainerModelActions::AddEditor,
             )),
+            _ => None,
         }
     }
 

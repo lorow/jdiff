@@ -27,6 +27,15 @@ impl CommandBar {
 }
 
 impl View for CommandBar {
+    fn init(
+        &mut self,
+        rame: &mut Frame,
+        rect: Rect,
+        app_state: &AppState,
+    ) -> Option<AppStateActions> {
+        None
+    }
+
     fn render(&self, frame: &mut Frame, rect: Rect, app_state: &AppState) {
         let app_state_mode = app_state.app_state_store.get_app_mode();
         if app_state_mode == AppMode::Command {
@@ -65,7 +74,7 @@ impl View for CommandBar {
             let middle_paragraph = Paragraph::default().style(Style::default().bg(Color::Black));
             frame.render_widget(middle_paragraph, status_bar_layout[1]);
 
-            let lines_widget = Text::from(Line::from("Lines 10:80"));
+            let lines_widget = Text::from(Line::from(" 10:80 "));
             let lines_widget = Paragraph::new(lines_widget)
                 .alignment(Alignment::Center)
                 .style(Style::default().bg(Color::Blue));
@@ -101,5 +110,22 @@ impl View for CommandBar {
             )),
             _ => None,
         }
+    }
+
+    fn handle_resize(
+        &mut self,
+        frame: &mut Frame,
+        rect: Rect,
+        app_state: &AppState,
+    ) -> Option<AppStateActions> {
+        None
+    }
+
+    fn get_has_been_initialized(&self, app_state: &AppState) -> bool {
+        true
+    }
+
+    fn get_has_been_resized(&self, app_state: &AppState) -> bool {
+        false
     }
 }

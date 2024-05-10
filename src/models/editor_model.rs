@@ -1,7 +1,7 @@
-use std::cmp::min;
+use std::cmp::{max, min};
 
 use crossterm::event::KeyEvent;
-use ratatui::layout::Rect;
+use ratatui::{layout::Rect, Frame};
 
 use super::app_state::AppStateActions;
 
@@ -13,6 +13,11 @@ pub enum EditorCursorDirection {
 }
 
 pub enum EditorContainerModelActions {
+    InitEditor(Rect),
+
+    ToggleResize,
+    ResizeEditor(Rect),
+
     Input(char),
     Backspace,
     Enter,
@@ -41,8 +46,6 @@ impl Default for EditorModel {
     fn default() -> Self {
         EditorModel {
             data: Vec::from([(1, String::from("awdawd"))]),
-            // TODO I need to somehow pass the size here
-            // TODO how though?
             current_size: Rect::default(),
             visible_lines: (0, 1),
             cursor_position: (0, 0),
@@ -65,7 +68,6 @@ impl EditorModel {
             .iter_mut()
             .skip(position + 2)
             .for_each(|line| line.0 += 1);
-
         self.cursor_position.1 += 1;
         self.update_visible_lines(1);
     }
@@ -92,14 +94,17 @@ impl EditorModel {
                 }
                 _ => {}
             }
+            self.visible_lines.0 = max(self.visible_lines.0, 0);
             self.visible_lines.1 = min(self.visible_lines.1, self.data.len() as u16);
         }
-        print!("{:?}", self.visible_lines);
     }
 }
 
 #[derive(Debug)]
 pub struct EditorContainerModel {
+    initialized: bool,
+    resized: bool,
+
     active_editor_index: u16,
     editors: Vec<EditorModel>,
 }
@@ -107,6 +112,8 @@ pub struct EditorContainerModel {
 impl Default for EditorContainerModel {
     fn default() -> Self {
         EditorContainerModel {
+            initialized: false,
+            resized: false,
             active_editor_index: 0,
             editors: Vec::from([EditorModel::default()]),
         }
@@ -131,11 +138,33 @@ impl EditorContainerModel {
                 if self.editors.len() >= 2 {
                     return None;
                 }
+                self.editors.push(EditorModel::default());
 
                 None
             }
             EditorContainerModelActions::ModifierInput(_) => None,
             EditorContainerModelActions::Backspace => todo!(),
+            EditorContainerModelActions::InitEditor(rect) => {
+                self.initialized = true;
+                self.editors.iter_mut().for_each(|editor| {
+                    editor.visible_lines = (0, rect.height);
+                    editor.update_visible_lines(-1)
+                });
+
+                None
+            }
+            EditorContainerModelActions::ToggleResize => {
+                self.resized = true;
+                None
+            }
+            EditorContainerModelActions::ResizeEditor(rect) => {
+                self.resized = false;
+                self.editors.iter_mut().for_each(|editor| {
+                    editor.visible_lines = (0, rect.height);
+                    editor.update_visible_lines(-1)
+                });
+                None
+            }
         }
     }
 
@@ -149,5 +178,13 @@ impl EditorContainerModel {
 
     pub fn get_active_cursor_position(&self) -> (u16, u16) {
         self.editors[self.active_editor_index as usize].cursor_position
+    }
+
+    pub fn get_is_initialized(&self) -> bool {
+        self.initialized
+    }
+
+    pub fn get_is_resized_set(&self) -> bool {
+        self.resized
     }
 }
