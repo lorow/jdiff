@@ -1,4 +1,7 @@
-use std::cmp::{max, min};
+use std::{
+    cmp::{max, min},
+    usize,
+};
 
 use crossterm::event::KeyEvent;
 use ratatui::{layout::Rect, Frame};
@@ -10,6 +13,11 @@ pub enum EditorCursorDirection {
     Right,
     Up,
     Down,
+}
+
+pub enum EditorFocus {
+    Next,
+    Prev,
 }
 
 pub enum EditorContainerModelActions {
@@ -24,9 +32,9 @@ pub enum EditorContainerModelActions {
     ModifierInput(KeyEvent),
     MoveCursor(EditorCursorDirection),
     // todo figure out how to handle ctrl+something
-    ChangeFocus(u16),
+    ChangeFocus(EditorFocus),
     AddEditor,
-    CloseEditor(u16),
+    CloseEditor,
     ToggleLines,
 }
 
@@ -129,9 +137,21 @@ impl EditorContainerModel {
                 None
             }
             EditorContainerModelActions::MoveCursor(_) => None,
-            EditorContainerModelActions::ChangeFocus(_) => None,
+            EditorContainerModelActions::ChangeFocus(direction) => match direction {
+                EditorFocus::Next => {
+                    self.active_editor_index = min(
+                        self.active_editor_index + 1,
+                        (self.editors.len() - 1) as u16,
+                    );
+                    None
+                }
+                EditorFocus::Prev => {
+                    self.active_editor_index = max(0, self.active_editor_index - 1);
+                    None
+                }
+            },
             EditorContainerModelActions::ToggleLines => None,
-            EditorContainerModelActions::CloseEditor(_) => None,
+            EditorContainerModelActions::CloseEditor => None,
             EditorContainerModelActions::AddEditor => {
                 // for now, we don't allow more than two editors, maybe in the future
                 // for now I need to actually implement this shit lmao

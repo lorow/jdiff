@@ -20,8 +20,8 @@ use ratatui::{
 
 use crate::models::{
     app_model::{AppMode, AppModelActions},
-    app_state::{AppState, AppStateActions},
-    editor_model::{EditorContainerModelActions, EditorModel},
+    app_state::{self, AppState, AppStateActions},
+    editor_model::{EditorContainerModelActions, EditorCursorDirection, EditorFocus, EditorModel},
 };
 
 use super::view::View;
@@ -73,27 +73,51 @@ impl View for EditorView {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        _is_ctrl_pressed: bool,
-        _is_shift_pressed: bool,
+        is_ctrl_pressed: bool,
+        is_shift_pressed: bool,
         app_state: &AppState,
     ) -> Option<AppStateActions> {
-        match key_event.code {
-            crossterm::event::KeyCode::Char(c) => {
-                if c == 'i' && app_state.app_state_store.get_app_mode() == AppMode::Normal {
-                    return Some(AppStateActions::AppModelActions(
-                        AppModelActions::ChangeMode(AppMode::Editing),
-                    ));
-                }
-                Some(AppStateActions::EditorActions(
-                    EditorContainerModelActions::Input(c),
-                ))
+        let current_app_mode = app_state.app_state_store.get_app_mode();
+        match (key_event.code, current_app_mode) {
+            (crossterm::event::KeyCode::Char(c), _) => {
+                self.handle_keyboard_input(is_ctrl_pressed, is_shift_pressed, app_state, c)
             }
-            crossterm::event::KeyCode::Esc => Some(AppStateActions::AppModelActions(
+            (crossterm::event::KeyCode::Esc, _) => Some(AppStateActions::AppModelActions(
                 AppModelActions::ChangeMode(AppMode::Normal),
             )),
-            crossterm::event::KeyCode::Enter => Some(AppStateActions::EditorActions(
-                EditorContainerModelActions::Enter,
-            )),
+
+            (crossterm::event::KeyCode::Backspace, AppMode::Editing) => Some(
+                AppStateActions::EditorActions(EditorContainerModelActions::Backspace),
+            ),
+
+            (crossterm::event::KeyCode::Up, AppMode::Editing) => {
+                Some(AppStateActions::EditorActions(
+                    EditorContainerModelActions::MoveCursor(EditorCursorDirection::Up),
+                ))
+            }
+            (crossterm::event::KeyCode::Down, AppMode::Editing) => {
+                Some(AppStateActions::EditorActions(
+                    EditorContainerModelActions::MoveCursor(EditorCursorDirection::Down),
+                ))
+            }
+            (crossterm::event::KeyCode::Left, AppMode::Editing) => {
+                Some(AppStateActions::EditorActions(
+                    EditorContainerModelActions::MoveCursor(EditorCursorDirection::Left),
+                ))
+            }
+            (crossterm::event::KeyCode::Right, AppMode::Editing) => {
+                Some(AppStateActions::EditorActions(
+                    EditorContainerModelActions::MoveCursor(EditorCursorDirection::Right),
+                ))
+            }
+            (crossterm::event::KeyCode::Enter, _) => {
+                if matches!(app_state.app_state_store.get_app_mode(), AppMode::Editing) {
+                    return Some(AppStateActions::EditorActions(
+                        EditorContainerModelActions::Enter,
+                    ));
+                }
+                None
+            }
             _ => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
         }
     }
@@ -149,7 +173,6 @@ impl EditorView {
         for (index, line_data) in editor_visible_lines.iter().enumerate() {
             let line_layout = Layout::default()
                 .direction(Direction::Horizontal)
-                // [1]gap[text]
                 .constraints([
                     Constraint::Min(3),
                     Constraint::Min(1),
@@ -160,12 +183,45 @@ impl EditorView {
             let number_paragraph = Paragraph::new(number_widget)
                 .alignment(Alignment::Center)
                 .style(Style::default().bg(Color::DarkGray));
-
             let text_widget = Text::from(Line::from(line_data.1.to_string()));
             let text_paragraph = Paragraph::new(text_widget).alignment(Alignment::Left);
 
             frame.render_widget(number_paragraph, line_layout[0]);
             frame.render_widget(text_paragraph, line_layout[2]);
         }
+    }
+
+    fn handle_keyboard_input(
+        &mut self,
+        is_ctrl_pressed: bool,
+        is_shift_pressed: bool,
+        app_state: &AppState,
+        c: char,
+    ) -> Option<AppStateActions> {
+        if app_state.app_state_store.get_app_mode() == AppMode::Editing {
+            match (c, is_ctrl_pressed) {
+                ('h', true) => {
+                    return Some(AppStateActions::EditorActions(
+                        EditorContainerModelActions::ChangeFocus(EditorFocus::Prev),
+                    ))
+                }
+                ('l', true) => {
+                    return Some(AppStateActions::EditorActions(
+                        EditorContainerModelActions::ChangeFocus(EditorFocus::Next),
+                    ))
+                }
+                (_, _) => return None,
+            }
+        }
+
+        if c == 'i' && app_state.app_state_store.get_app_mode() == AppMode::Normal {
+            return Some(AppStateActions::AppModelActions(
+                AppModelActions::ChangeMode(AppMode::Editing),
+            ));
+        }
+
+        Some(AppStateActions::EditorActions(
+            EditorContainerModelActions::Input(c),
+        ))
     }
 }
