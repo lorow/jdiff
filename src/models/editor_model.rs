@@ -1,10 +1,9 @@
 use std::{
-    cmp::{max, min},
-    usize,
+    cmp::{max, min}, ops::Sub, usize
 };
 
 use crossterm::event::KeyEvent;
-use ratatui::{layout::Rect, Frame};
+use ratatui::{layout::{Direction, Rect}, Frame};
 
 use super::app_state::AppStateActions;
 
@@ -29,7 +28,6 @@ pub enum EditorContainerModelActions {
     Input(char),
     Backspace,
     Enter,
-    ModifierInput(KeyEvent),
     MoveCursor(EditorCursorDirection),
     // todo figure out how to handle ctrl+something
     ChangeFocus(EditorFocus),
@@ -106,13 +104,33 @@ impl EditorModel {
             self.visible_lines.1 = min(self.visible_lines.1, self.data.len() as u16);
         }
     }
+
+    fn move_cursor(&mut self, direction: EditorCursorDirection) {
+        match direction {
+            EditorCursorDirection::Left => {
+                self.cursor_position.0 = self.cursor_position.0.checked_sub(1).unwrap_or(0);
+            },
+            EditorCursorDirection::Right => {
+                self.cursor_position.0 = min(self.cursor_position.0 + 1, self.data[self.cursor_position.1 as usize].1.len() as u16 );
+            },
+            EditorCursorDirection::Up => {
+                self.cursor_position.1 =  self.cursor_position.1.checked_sub(1).unwrap_or(0);
+                self.cursor_position.0 = min(self.cursor_position.0, self.data[self.cursor_position.1 as usize].1.len() as u16 );
+                self.update_visible_lines(1);
+            },
+            EditorCursorDirection::Down => {
+                self.cursor_position.1 = min(self.cursor_position.1 + 1, self.data.len() as u16 - 1);
+                self.cursor_position.0 = min(self.cursor_position.0, self.data[self.cursor_position.1 as usize].1.len() as u16 );
+                self.update_visible_lines(-1);
+            },
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct EditorContainerModel {
     initialized: bool,
     resized: bool,
-
     active_editor_index: u16,
     editors: Vec<EditorModel>,
 }
@@ -136,7 +154,10 @@ impl EditorContainerModel {
                 self.editors[self.active_editor_index as usize].add_line();
                 None
             }
-            EditorContainerModelActions::MoveCursor(_) => None,
+            EditorContainerModelActions::MoveCursor(direction) => {
+                self.editors[self.active_editor_index as usize].move_cursor(direction);
+                return None; 
+            },
             EditorContainerModelActions::ChangeFocus(direction) => match direction {
                 EditorFocus::Next => {
                     self.active_editor_index = min(
@@ -162,7 +183,6 @@ impl EditorContainerModel {
 
                 None
             }
-            EditorContainerModelActions::ModifierInput(_) => None,
             EditorContainerModelActions::Backspace => todo!(),
             EditorContainerModelActions::InitEditor(rect) => {
                 self.initialized = true;
