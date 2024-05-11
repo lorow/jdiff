@@ -92,7 +92,7 @@ impl CommandBarModel {
         match command {
             "q" | "exit" | "quit" => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
             "save" => None,
-            "add_editor" => Some(AppStateActions::EditorActions(
+            "vsplit" => Some(AppStateActions::EditorActions(
                 EditorContainerModelActions::AddEditor,
             )),
             _ => None,

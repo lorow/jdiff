@@ -1,9 +1,9 @@
 use std::{
-    cmp::{max, min}, ops::Sub, usize
+    cmp::{max, min},
+    usize,
 };
 
-use crossterm::event::KeyEvent;
-use ratatui::{layout::{Direction, Rect}, Frame};
+use ratatui::layout::Rect;
 
 use super::app_state::AppStateActions;
 
@@ -105,24 +105,43 @@ impl EditorModel {
         }
     }
 
+    fn handle_input(&mut self, c: char) {
+        let position = self.cursor_position.1 as usize;
+        self.data[position]
+            .1
+            .insert(self.cursor_position.0 as usize, c);
+        self.cursor_position.0 += 1;
+    }
+
     fn move_cursor(&mut self, direction: EditorCursorDirection) {
         match direction {
             EditorCursorDirection::Left => {
                 self.cursor_position.0 = self.cursor_position.0.checked_sub(1).unwrap_or(0);
-            },
+            }
             EditorCursorDirection::Right => {
-                self.cursor_position.0 = min(self.cursor_position.0 + 1, self.data[self.cursor_position.1 as usize].1.len() as u16 );
-            },
+                self.cursor_position.0 = min(
+                    self.cursor_position.0 + 1,
+                    self.data[self.cursor_position.1 as usize].1.len() as u16,
+                );
+            }
             EditorCursorDirection::Up => {
-                self.cursor_position.1 =  self.cursor_position.1.checked_sub(1).unwrap_or(0);
-                self.cursor_position.0 = min(self.cursor_position.0, self.data[self.cursor_position.1 as usize].1.len() as u16 );
+                self.cursor_position.1 = self.cursor_position.1.checked_sub(1).unwrap_or(0);
+                self.cursor_position.0 = min(
+                    self.cursor_position.0,
+                    self.data[self.cursor_position.1 as usize].1.len() as u16,
+                );
                 self.update_visible_lines(1);
-            },
+            }
             EditorCursorDirection::Down => {
-                self.cursor_position.1 = min(self.cursor_position.1 + 1, self.data.len() as u16 - 1);
-                self.cursor_position.0 = min(self.cursor_position.0, self.data[self.cursor_position.1 as usize].1.len() as u16 );
+                self.cursor_position.1 =
+                    min(self.cursor_position.1 + 1, self.data.len() as u16 - 1);
+
+                self.cursor_position.0 = min(
+                    self.cursor_position.0,
+                    self.data[self.cursor_position.1 as usize].1.len() as u16,
+                );
                 self.update_visible_lines(-1);
-            },
+            }
         }
     }
 }
@@ -149,21 +168,21 @@ impl Default for EditorContainerModel {
 impl EditorContainerModel {
     pub fn update(&mut self, action: EditorContainerModelActions) -> Option<AppStateActions> {
         match action {
-            EditorContainerModelActions::Input(c) => None,
+            EditorContainerModelActions::Input(c) => {
+                self.editors[self.active_editor_index as usize].handle_input(c);
+                None
+            }
             EditorContainerModelActions::Enter => {
                 self.editors[self.active_editor_index as usize].add_line();
                 None
             }
             EditorContainerModelActions::MoveCursor(direction) => {
                 self.editors[self.active_editor_index as usize].move_cursor(direction);
-                return None; 
-            },
+                None
+            }
             EditorContainerModelActions::ChangeFocus(direction) => match direction {
                 EditorFocus::Next => {
-                    self.active_editor_index = min(
-                        self.active_editor_index + 1,
-                        (self.editors.len() - 1) as u16,
-                    );
+                    self.active_editor_index = self.active_editor_index.checked_sub(1).unwrap_or(0);
                     None
                 }
                 EditorFocus::Prev => {

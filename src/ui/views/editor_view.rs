@@ -57,17 +57,15 @@ impl View for EditorView {
             self.render_editor(frame, editors_container_layout[index], app_state, editor);
         }
 
-        if app_state.app_state_store.get_app_mode() == AppMode::Editing {
-            let side_rect_used =
-                editors_container_layout[app_state.editor_store.get_active_editor_index() as usize];
-            let cursor_position = app_state.editor_store.get_active_cursor_position();
+        let side_rect_used =
+            editors_container_layout[app_state.editor_store.get_active_editor_index() as usize];
+        let cursor_position = app_state.editor_store.get_active_cursor_position();
 
-            frame.set_cursor(
-                // 4 is the line length, move that to a const
-                side_rect_used.x + 4 + cursor_position.0,
-                side_rect_used.y + cursor_position.1,
-            )
-        }
+        frame.set_cursor(
+            // 4 is the line length, move that to a const
+            side_rect_used.x + 4 + cursor_position.0,
+            side_rect_used.y + cursor_position.1,
+        )
     }
 
     fn handle_event(
@@ -90,26 +88,18 @@ impl View for EditorView {
                 AppStateActions::EditorActions(EditorContainerModelActions::Backspace),
             ),
 
-            (crossterm::event::KeyCode::Up, AppMode::Editing) => {
-                Some(AppStateActions::EditorActions(
-                    EditorContainerModelActions::MoveCursor(EditorCursorDirection::Up),
-                ))
-            }
-            (crossterm::event::KeyCode::Down, AppMode::Editing) => {
-                Some(AppStateActions::EditorActions(
-                    EditorContainerModelActions::MoveCursor(EditorCursorDirection::Down),
-                ))
-            }
-            (crossterm::event::KeyCode::Left, AppMode::Editing) => {
-                Some(AppStateActions::EditorActions(
-                    EditorContainerModelActions::MoveCursor(EditorCursorDirection::Left),
-                ))
-            }
-            (crossterm::event::KeyCode::Right, AppMode::Editing) => {
-                Some(AppStateActions::EditorActions(
-                    EditorContainerModelActions::MoveCursor(EditorCursorDirection::Right),
-                ))
-            }
+            (crossterm::event::KeyCode::Up, _) => Some(AppStateActions::EditorActions(
+                EditorContainerModelActions::MoveCursor(EditorCursorDirection::Up),
+            )),
+            (crossterm::event::KeyCode::Down, _) => Some(AppStateActions::EditorActions(
+                EditorContainerModelActions::MoveCursor(EditorCursorDirection::Down),
+            )),
+            (crossterm::event::KeyCode::Left, _) => Some(AppStateActions::EditorActions(
+                EditorContainerModelActions::MoveCursor(EditorCursorDirection::Left),
+            )),
+            (crossterm::event::KeyCode::Right, _) => Some(AppStateActions::EditorActions(
+                EditorContainerModelActions::MoveCursor(EditorCursorDirection::Right),
+            )),
             (crossterm::event::KeyCode::Enter, _) => {
                 if matches!(app_state.app_state_store.get_app_mode(), AppMode::Editing) {
                     return Some(AppStateActions::EditorActions(
@@ -118,7 +108,7 @@ impl View for EditorView {
                 }
                 None
             }
-            _ => Some(AppStateActions::AppModelActions(AppModelActions::Exit)),
+            _ => None,
         }
     }
 
@@ -198,20 +188,18 @@ impl EditorView {
         app_state: &AppState,
         c: char,
     ) -> Option<AppStateActions> {
-        if app_state.app_state_store.get_app_mode() == AppMode::Editing {
-            match (c, is_ctrl_pressed) {
-                ('h', true) => {
-                    return Some(AppStateActions::EditorActions(
-                        EditorContainerModelActions::ChangeFocus(EditorFocus::Prev),
-                    ))
-                }
-                ('l', true) => {
-                    return Some(AppStateActions::EditorActions(
-                        EditorContainerModelActions::ChangeFocus(EditorFocus::Next),
-                    ))
-                }
-                (_, _) => return None,
+        match (c, is_ctrl_pressed) {
+            ('h', true) => {
+                return Some(AppStateActions::EditorActions(
+                    EditorContainerModelActions::ChangeFocus(EditorFocus::Prev),
+                ))
             }
+            ('l', true) => {
+                return Some(AppStateActions::EditorActions(
+                    EditorContainerModelActions::ChangeFocus(EditorFocus::Next),
+                ))
+            }
+            (_, _) => {}
         }
 
         if c == 'i' && app_state.app_state_store.get_app_mode() == AppMode::Normal {
@@ -220,8 +208,11 @@ impl EditorView {
             ));
         }
 
-        Some(AppStateActions::EditorActions(
-            EditorContainerModelActions::Input(c),
-        ))
+        if matches!(app_state.app_state_store.get_app_mode(), AppMode::Editing) {
+            return Some(AppStateActions::EditorActions(
+                EditorContainerModelActions::Input(c),
+            ));
+        }
+        None
     }
 }
