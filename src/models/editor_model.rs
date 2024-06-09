@@ -182,11 +182,14 @@ impl EditorContainerModel {
             }
             EditorContainerModelActions::ChangeFocus(direction) => match direction {
                 EditorFocus::Next => {
-                    self.active_editor_index = self.active_editor_index.checked_sub(1).unwrap_or(0);
+                    self.active_editor_index = min(
+                        self.editors.len() as u16 - 1,
+                        self.active_editor_index.checked_add(1).unwrap_or(0),
+                    );
                     None
                 }
                 EditorFocus::Prev => {
-                    self.active_editor_index = max(0, self.active_editor_index - 1);
+                    self.active_editor_index = self.active_editor_index.checked_sub(1).unwrap_or(0);
                     None
                 }
             },
