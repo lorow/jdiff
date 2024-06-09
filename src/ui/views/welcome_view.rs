@@ -1,4 +1,4 @@
-use super::view::View;
+use super::view::{View, ViewContext};
 use crate::models::{
     app_model::AppModelActions,
     app_state::{AppState, AppStateActions},
@@ -55,8 +55,7 @@ impl View for WelcomeVIew {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        _is_ctrl_pressed: bool,
-        _is_shift_pressed: bool,
+        _context: ViewContext,
         _app_state: &AppState,
     ) -> Option<AppStateActions> {
         match key_event.code {

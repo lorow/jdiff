@@ -6,7 +6,7 @@ use crate::{
         app_state::{AppState, AppStateActions},
         command_bar::{CommandBarModelActions, CursorDirection},
     },
-    ui::views::view::View,
+    ui::views::view::{View, ViewContext},
 };
 
 use ratatui::{
@@ -85,8 +85,7 @@ impl View for CommandBar {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        is_ctrl_pressed: bool,
-        is_shift_pressed: bool,
+        _context: ViewContext,
         app_state: &AppState,
     ) -> Option<AppStateActions> {
         match key_event.code {

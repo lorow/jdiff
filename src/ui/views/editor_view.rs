@@ -24,7 +24,7 @@ use crate::models::{
     editor_model::{EditorContainerModelActions, EditorCursorDirection, EditorFocus, EditorModel},
 };
 
-use super::view::View;
+use super::view::{View, ViewContext};
 
 #[derive(Default)]
 pub struct EditorView {}
@@ -71,23 +71,20 @@ impl View for EditorView {
     fn handle_event(
         &mut self,
         key_event: &crossterm::event::KeyEvent,
-        is_ctrl_pressed: bool,
-        is_shift_pressed: bool,
+        context: ViewContext,
         app_state: &AppState,
     ) -> Option<AppStateActions> {
         let current_app_mode = app_state.app_state_store.get_app_mode();
         match (key_event.code, current_app_mode) {
             (crossterm::event::KeyCode::Char(c), _) => {
-                self.handle_keyboard_input(is_ctrl_pressed, is_shift_pressed, app_state, c)
+                self.handle_keyboard_input(&context, app_state, c)
             }
             (crossterm::event::KeyCode::Esc, _) => Some(AppStateActions::AppModelActions(
                 AppModelActions::ChangeMode(AppMode::Normal),
             )),
-
             (crossterm::event::KeyCode::Backspace, AppMode::Editing) => Some(
                 AppStateActions::EditorActions(EditorContainerModelActions::Backspace),
             ),
-
             (crossterm::event::KeyCode::Up, _) => Some(AppStateActions::EditorActions(
                 EditorContainerModelActions::MoveCursor(EditorCursorDirection::Up),
             )),
@@ -183,12 +180,11 @@ impl EditorView {
 
     fn handle_keyboard_input(
         &mut self,
-        is_ctrl_pressed: bool,
-        is_shift_pressed: bool,
+        context: &ViewContext,
         app_state: &AppState,
         c: char,
     ) -> Option<AppStateActions> {
-        match (c, is_ctrl_pressed) {
+        match (c, context.is_ctrl_pressed) {
             ('h', true) => {
                 return Some(AppStateActions::EditorActions(
                     EditorContainerModelActions::ChangeFocus(EditorFocus::Prev),
