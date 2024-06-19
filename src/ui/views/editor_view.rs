@@ -20,8 +20,11 @@ use ratatui::{
 
 use crate::models::{
     app_model::{AppMode, AppModelActions},
-    app_state::{self, AppState, AppStateActions},
-    editor_model::{EditorContainerModelActions, EditorCursorDirection, EditorFocus, EditorModel},
+    app_state::{AppState, AppStateActions},
+    editor::{
+        editor_container_models::{EditorContainerModelActions, EditorFocus},
+        editor_model::{EditorCursorDirection, EditorModel},
+    },
 };
 
 use super::view::{View, ViewContext};
@@ -58,7 +61,7 @@ impl View for EditorView {
         }
 
         let side_rect_used =
-            editors_container_layout[app_state.editor_store.get_active_editor_index() as usize];
+            editors_container_layout[app_state.editor_store.get_active_editor_index()];
         let cursor_position = app_state.editor_store.get_active_cursor_position();
 
         frame.set_cursor(
@@ -198,10 +201,27 @@ impl EditorView {
             (_, _) => {}
         }
 
-        if c == 'i' && app_state.app_state_store.get_app_mode() == AppMode::Normal {
-            return Some(AppStateActions::AppModelActions(
-                AppModelActions::ChangeMode(AppMode::Editing),
-            ));
+        if c == 'i' && app_state.app_state_store.get_app_mode() == AppMode::Normal {}
+
+        if c == 'u' && app_state.app_state_store.get_app_mode() == AppMode::Normal {}
+
+        if app_state.app_state_store.get_app_mode() == AppMode::Normal {
+            if c == 'i' {
+                return Some(AppStateActions::AppModelActions(
+                    AppModelActions::ChangeMode(AppMode::Editing),
+                ));
+            }
+
+            if c == 'u' {
+                if context.is_shift_pressed {
+                    return Some(AppStateActions::EditorActions(
+                        EditorContainerModelActions::Redo,
+                    ));
+                }
+                return Some(AppStateActions::EditorActions(
+                    EditorContainerModelActions::Undo,
+                ));
+            }
         }
 
         if matches!(app_state.app_state_store.get_app_mode(), AppMode::Editing) {

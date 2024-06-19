@@ -3,7 +3,7 @@ use std::pin::Pin;
 use super::{
     app_model::{AppMode, AppModel, AppModelActions},
     command_bar::{CommandBarModel, CommandBarModelActions},
-    editor_model::{EditorContainerModel, EditorContainerModelActions},
+    editor::editor_container_models::{EditorContainerModel, EditorContainerModelActions},
     router::{RouterModel, RouterModelActions},
 };
 

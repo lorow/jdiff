@@ -1,9 +1,6 @@
-use crate::models::{
-    app_model::AppModelActions, app_state::AppStateActions,
-    editor_model::EditorContainerModelActions,
-};
+use crate::models::{app_model::AppModelActions, app_state::AppStateActions};
 
-use super::app_model::AppMode;
+use super::editor::editor_container_models::EditorContainerModelActions;
 
 #[derive(Debug)]
 pub struct CommandBarModel {
