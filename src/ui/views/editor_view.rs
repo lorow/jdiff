@@ -201,10 +201,6 @@ impl EditorView {
             (_, _) => {}
         }
 
-        if c == 'i' && app_state.app_state_store.get_app_mode() == AppMode::Normal {}
-
-        if c == 'u' && app_state.app_state_store.get_app_mode() == AppMode::Normal {}
-
         if app_state.app_state_store.get_app_mode() == AppMode::Normal {
             if c == 'i' {
                 return Some(AppStateActions::AppModelActions(
