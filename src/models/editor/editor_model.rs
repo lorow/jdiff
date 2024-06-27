@@ -6,6 +6,7 @@ use std::{
 
 type LineNumber = usize;
 type EditorLine = (LineNumber, String);
+type CursorPosition = (u16, u16);
 
 #[derive(Debug)]
 pub enum EditorCursorDirection {
@@ -15,26 +16,33 @@ pub enum EditorCursorDirection {
     Down,
 }
 
+// todo rethink how editors should work once we have multiselect
 #[derive(Debug)]
 pub enum ReversibleEditorModelActions {
-    Input(char),
-    AddLine,
+    Input(char, CursorPosition),
+    Backspace(char, CursorPosition),
+    AddLine(LineNumber),
+    DeleteLine(LineNumber),
 }
 
 pub enum EditorModelActions {
     Input(char),
     MoveCursor(EditorCursorDirection),
+    Backspace,
+    DeleteLine,
     AddLine,
+    Undo,
+    Redo,
 }
 
 #[derive(Debug)]
 pub struct EditorModel {
     data: Vec<EditorLine>,
     actions_stack: Vec<ReversibleEditorModelActions>,
-    current_action: u64,
+    current_action_index: usize,
     current_size: Rect,
     visible_lines: (u16, u16),
-    cursor_position: (u16, u16),
+    cursor_position: CursorPosition,
 }
 
 impl Default for EditorModel {
@@ -42,7 +50,7 @@ impl Default for EditorModel {
         EditorModel {
             data: Vec::from([(1, String::from("awdawd"))]),
             actions_stack: Vec::new(),
-            current_action: 0,
+            current_action_index: 0,
             current_size: Rect::default(),
             visible_lines: (0, 1),
             cursor_position: (0, 0),
@@ -145,5 +153,42 @@ impl EditorModel {
         }
     }
 
-    pub fn handle_action(&mut self, action: EditorModelActions) {}
+    fn update_reversible_commands(&mut self, action: ReversibleEditorModelActions) {
+        self.actions_stack.insert(self.current_action_index, action);
+
+        if self.actions_stack.len() > 100 {
+            self.actions_stack.remove(0);
+        }
+
+        self.current_action_index += 1;
+    }
+
+    pub fn handle_action(&mut self, action: EditorModelActions) {
+        match action {
+            EditorModelActions::Input(char) => {
+                self.handle_input(char);
+                self.update_reversible_commands(ReversibleEditorModelActions::Input(
+                    char,
+                    self.cursor_position,
+                ));
+            }
+            EditorModelActions::MoveCursor(direction) => self.move_cursor(direction),
+            EditorModelActions::AddLine => {
+                self.add_line();
+                self.update_reversible_commands(ReversibleEditorModelActions::AddLine(
+                    self.cursor_position.1 as usize,
+                ));
+            }
+            EditorModelActions::Backspace => todo!(),
+            EditorModelActions::DeleteLine => {
+                self.update_reversible_commands(ReversibleEditorModelActions::DeleteLine(
+                    self.cursor_position.1 as usize,
+                ));
+
+                self.delete_line();
+            }
+            EditorModelActions::Undo => todo!(),
+            EditorModelActions::Redo => todo!(),
+        }
+    }
 }

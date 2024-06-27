@@ -58,8 +58,14 @@ impl EditorContainerModel {
 
                 None
             }
-            EditorContainerModelActions::Undo => None,
-            EditorContainerModelActions::Redo => None,
+            EditorContainerModelActions::Undo => {
+                self.editors[self.active_editor_index].handle_action(EditorModelActions::Undo);
+                None
+            }
+            EditorContainerModelActions::Redo => {
+                self.editors[self.active_editor_index].handle_action(EditorModelActions::Redo);
+                None
+            }
             EditorContainerModelActions::Input(c) => {
                 self.editors[self.active_editor_index].handle_action(EditorModelActions::Input(c));
                 // self.editors[self.active_editor_index as usize].handle_input(c);
