@@ -1,5 +1,3 @@
-use std::pin::Pin;
-
 use super::{
     app_model::{AppMode, AppModel, AppModelActions},
     command_bar::{CommandBarModel, CommandBarModelActions},
