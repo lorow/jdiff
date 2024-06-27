@@ -4,9 +4,11 @@ use std::{
     usize,
 };
 
-type LineNumber = usize;
-type EditorLine = (LineNumber, String);
-type CursorPosition = (u16, u16);
+use super::{
+    editor_traits::History,
+    history_model::EditorBackupModel,
+    types::{CursorPosition, EditorLine},
+};
 
 #[derive(Debug)]
 pub enum EditorCursorDirection {
@@ -17,14 +19,6 @@ pub enum EditorCursorDirection {
 }
 
 // todo rethink how editors should work once we have multiselect
-#[derive(Debug)]
-pub enum ReversibleEditorModelActions {
-    Input(char, CursorPosition),
-    Backspace(char, CursorPosition),
-    AddLine(LineNumber),
-    DeleteLine(LineNumber),
-}
-
 pub enum EditorModelActions {
     Input(char),
     MoveCursor(EditorCursorDirection),
@@ -38,8 +32,8 @@ pub enum EditorModelActions {
 #[derive(Debug)]
 pub struct EditorModel {
     data: Vec<EditorLine>,
-    actions_stack: Vec<ReversibleEditorModelActions>,
-    current_action_index: usize,
+    history: Vec<EditorBackupModel>,
+    current_history_index: usize,
     current_size: Rect,
     visible_lines: (u16, u16),
     cursor_position: CursorPosition,
@@ -49,8 +43,8 @@ impl Default for EditorModel {
     fn default() -> Self {
         EditorModel {
             data: Vec::from([(1, String::from("awdawd"))]),
-            actions_stack: Vec::new(),
-            current_action_index: 0,
+            history: Vec::<EditorBackupModel>::new(),
+            current_history_index: 0,
             current_size: Rect::default(),
             visible_lines: (0, 1),
             cursor_position: (0, 0),
@@ -153,42 +147,55 @@ impl EditorModel {
         }
     }
 
-    fn update_reversible_commands(&mut self, action: ReversibleEditorModelActions) {
-        self.actions_stack.insert(self.current_action_index, action);
-
-        if self.actions_stack.len() > 100 {
-            self.actions_stack.remove(0);
-        }
-
-        self.current_action_index += 1;
-    }
-
     pub fn handle_action(&mut self, action: EditorModelActions) {
         match action {
             EditorModelActions::Input(char) => {
                 self.handle_input(char);
-                self.update_reversible_commands(ReversibleEditorModelActions::Input(
-                    char,
-                    self.cursor_position,
-                ));
             }
             EditorModelActions::MoveCursor(direction) => self.move_cursor(direction),
             EditorModelActions::AddLine => {
                 self.add_line();
-                self.update_reversible_commands(ReversibleEditorModelActions::AddLine(
-                    self.cursor_position.1 as usize,
-                ));
             }
             EditorModelActions::Backspace => todo!(),
             EditorModelActions::DeleteLine => {
-                self.update_reversible_commands(ReversibleEditorModelActions::DeleteLine(
-                    self.cursor_position.1 as usize,
-                ));
-
                 self.delete_line();
             }
-            EditorModelActions::Undo => todo!(),
-            EditorModelActions::Redo => todo!(),
+            EditorModelActions::Undo => self.restore(),
+            EditorModelActions::Redo => self.undo_restore(),
         }
+    }
+}
+
+impl History for EditorModel {
+    fn restore(&mut self) {
+        if let Some(last_entry) = self.history.get(self.current_history_index) {
+            self.data = last_entry.data.clone();
+            self.cursor_position = last_entry.cursor_position;
+            self.current_size = last_entry.current_size;
+            self.current_history_index = min(0, self.current_history_index - 1);
+        }
+    }
+
+    fn undo_restore(&mut self) {
+        if let Some(last_entry) = self.history.get(self.current_history_index) {
+            self.data = last_entry.data.clone();
+            self.cursor_position = last_entry.cursor_position;
+            self.current_size = last_entry.current_size;
+            self.current_history_index =
+                min(self.current_history_index, self.current_history_index + 1);
+        }
+    }
+
+    fn backup(&mut self) {
+        self.history.truncate(self.current_history_index);
+        self.history.push(EditorBackupModel::new(
+            self.data.clone(),
+            self.get_cursor_position(),
+            self.current_size.clone(),
+        ))
+    }
+
+    fn save(self) -> String {
+        "".to_string()
     }
 }
