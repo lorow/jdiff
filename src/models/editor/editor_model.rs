@@ -23,7 +23,6 @@ pub enum EditorModelActions {
     Input(char),
     MoveCursor(EditorCursorDirection),
     Backspace,
-    DeleteLine,
     AddLine,
     Undo,
     Redo,
@@ -81,9 +80,19 @@ impl EditorModel {
     }
 
     fn delete_line(&mut self) {
-        let position = self.cursor_position.0 as usize;
+        let position = self.cursor_position.1 as usize;
+
+        // we're asked to remove the last line, no point
+        if position == 0 {
+            return;
+        }
+
         self.data.remove(position);
         self.cursor_position.1 -= 1;
+        self.data
+            .iter_mut()
+            .skip(self.cursor_position.1 as usize + 1)
+            .for_each(|line| line.0 -= 1);
         self.update_visible_lines(-1);
     }
 
@@ -112,7 +121,22 @@ impl EditorModel {
         self.data[position]
             .1
             .insert(self.cursor_position.0 as usize, c);
-        self.cursor_position.0 += 1;
+        self.move_cursor(EditorCursorDirection::Right);
+    }
+
+    fn handle_backspace(&mut self) {
+        let (row, col) = self.cursor_position;
+        if row == 0 {
+            return self.delete_line();
+        } else {
+            let before_char_to_delete = self.data[col as usize].1.chars().take(row as usize - 1);
+            let after_chars_to_delete = self.data[col as usize].1.chars().skip(row as usize);
+            self.data[col as usize] = (
+                self.data[col as usize].0,
+                before_char_to_delete.chain(after_chars_to_delete).collect(),
+            );
+            self.move_cursor(EditorCursorDirection::Left)
+        }
     }
 
     fn move_cursor(&mut self, direction: EditorCursorDirection) {
@@ -156,10 +180,7 @@ impl EditorModel {
             EditorModelActions::AddLine => {
                 self.add_line();
             }
-            EditorModelActions::Backspace => todo!(),
-            EditorModelActions::DeleteLine => {
-                self.delete_line();
-            }
+            EditorModelActions::Backspace => self.handle_backspace(),
             EditorModelActions::Undo => self.restore(),
             EditorModelActions::Redo => self.undo_restore(),
         }

@@ -55,7 +55,6 @@ impl EditorContainerModel {
                 self.editors
                     .iter_mut()
                     .for_each(|editor| editor.resize(rect));
-
                 None
             }
             EditorContainerModelActions::Undo => {
@@ -107,7 +106,10 @@ impl EditorContainerModel {
 
                 None
             }
-            EditorContainerModelActions::Backspace => todo!(),
+            EditorContainerModelActions::Backspace => {
+                self.editors[self.active_editor_index].handle_action(EditorModelActions::Backspace);
+                None
+            }
             EditorContainerModelActions::ToggleResize => {
                 self.resized = true;
                 None
