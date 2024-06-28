@@ -66,7 +66,7 @@ impl EditorModel {
     }
 
     fn add_line(&mut self) {
-        let position = self.cursor_position.0 as usize;
+        let position = self.cursor_position.1 as usize;
         let last_line_number = self.data[position].0;
         self.data
             .insert(position + 1, (last_line_number + 1, String::from("")));
@@ -76,6 +76,8 @@ impl EditorModel {
             .skip(position + 2)
             .for_each(|line| line.0 += 1);
         self.cursor_position.1 += 1;
+        self.cursor_position.0 = 0;
+
         self.update_visible_lines(1);
     }
 
