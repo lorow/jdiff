@@ -52,7 +52,7 @@ impl EventHandler {
                             CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
                             CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)),
                             CrosstermEvent::Paste(s) => sender.send(Event::Paste(s)),
-                            _ => unimplemented!(),
+                            _ => Ok(()),
                         }
                         .expect("Failed to send event")
                     }
