@@ -11,12 +11,17 @@ pub struct EditorBackupModel {
 }
 
 impl EditorBackupModel {
-    pub fn new(data: Vec<EditorLine>, cursor_position: CursorPosition, current_size: Rect) -> Self {
+    pub fn new(
+        data: Vec<EditorLine>,
+        cursor_position: CursorPosition,
+        current_size: Rect,
+        visible_lines: (u16, u16),
+    ) -> Self {
         Self {
             data,
             cursor_position,
             current_size,
-            visible_lines: (0, 1),
+            visible_lines,
         }
     }
 }

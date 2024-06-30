@@ -1,32 +1,32 @@
-use std::panic;
 use std::{
     collections::HashMap,
     io::{self, Stdout},
 };
+use std::panic;
 
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyModifiers};
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, KeyCode::Char},
+    event::KeyCode::Char,
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::prelude::*;
 
-use crate::models::app_model::AppMode;
-use crate::models::app_model::AppModelActions;
-use crate::models::app_state::{AppStateActions, BaseActions};
 use crate::{
     event::{Event, EventHandler},
     models::app_state::AppState,
 };
+use crate::models::app_model::AppMode;
+use crate::models::app_model::AppModelActions;
+use crate::models::app_state::{AppStateActions, BaseActions};
 
-use super::views::editor_view::EditorView;
-use super::views::view::{TabState, ViewContext};
 use super::{
     command_bar::view::CommandBar,
     views::{view::View, welcome_view::WelcomeVIew},
 };
+use super::views::editor_view::EditorView;
+use super::views::view::{TabState, ViewContext};
 
 #[derive(Default)]
 pub struct UiManager {}
@@ -148,7 +148,7 @@ impl UiManager {
 fn setup_terminal() -> anyhow::Result<Terminal<CrosstermBackend<Stdout>>> {
     let mut stdout = io::stdout();
     enable_raw_mode()?;
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(stdout, EnterAlternateScreen)?;
 
     Ok(Terminal::new(CrosstermBackend::new(stdout))?)
 }
@@ -160,7 +160,7 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> anyhow
 
 fn reset() -> Result<()> {
     disable_raw_mode()?;
-    crossterm::execute!(io::stderr(), LeaveAlternateScreen, DisableMouseCapture)?;
+    crossterm::execute!(io::stderr(), LeaveAlternateScreen)?;
     Ok(())
 }
 

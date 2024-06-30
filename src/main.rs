@@ -1,10 +1,11 @@
 use anyhow::Ok;
 use anyhow::Result;
+
+use ui::manager::UiManager;
+
 pub mod event;
 pub mod models;
 pub mod ui;
-
-use ui::manager::UiManager;
 
 fn main() -> Result<()> {
     let mut ui_manager = UiManager::new();

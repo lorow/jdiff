@@ -1,8 +1,9 @@
-use ratatui::layout::Rect;
 use std::{
     cmp::{max, min},
     usize,
 };
+
+use ratatui::layout::Rect;
 
 use super::{
     editor_traits::History,
@@ -40,14 +41,17 @@ pub struct EditorModel {
 
 impl Default for EditorModel {
     fn default() -> Self {
-        EditorModel {
+        let mut editor = EditorModel {
             data: Vec::from([(1, String::from("awdawd"))]),
             history: Vec::<EditorBackupModel>::new(),
             current_history_index: 0,
             current_size: Rect::default(),
             visible_lines: (0, 1),
             cursor_position: (0, 0),
-        }
+        };
+
+        editor.backup();
+        editor
     }
 }
 
@@ -177,25 +181,40 @@ impl EditorModel {
         match action {
             EditorModelActions::Input(char) => {
                 self.handle_input(char);
+                self.backup();
             }
             EditorModelActions::MoveCursor(direction) => self.move_cursor(direction),
             EditorModelActions::AddLine => {
                 self.add_line();
+                self.backup();
             }
-            EditorModelActions::Backspace => self.handle_backspace(),
-            EditorModelActions::Undo => self.restore(),
-            EditorModelActions::Redo => self.undo_restore(),
+            EditorModelActions::Backspace => {
+                self.handle_backspace();
+                self.backup();
+            }
+            EditorModelActions::Undo => {
+                self.restore();
+            }
+            EditorModelActions::Redo => {
+                self.undo_restore();
+                self.update_visible_lines(0);
+            }
         }
     }
 }
 
 impl History for EditorModel {
     fn restore(&mut self) {
-        if let Some(last_entry) = self.history.get(self.current_history_index) {
+        // we want to restore the state before the current change, hence -2
+        if let Some(last_entry) = self
+            .history
+            .get(self.current_history_index.saturating_sub(2))
+        {
             self.data = last_entry.data.clone();
             self.cursor_position = last_entry.cursor_position;
             self.current_size = last_entry.current_size;
-            self.current_history_index = min(0, self.current_history_index - 1);
+            self.visible_lines = last_entry.visible_lines.clone();
+            self.current_history_index = self.current_history_index.saturating_sub(1);
         }
     }
 
@@ -204,18 +223,27 @@ impl History for EditorModel {
             self.data = last_entry.data.clone();
             self.cursor_position = last_entry.cursor_position;
             self.current_size = last_entry.current_size;
-            self.current_history_index =
-                min(self.current_history_index, self.current_history_index + 1);
+            self.current_history_index = min(self.history.len(), self.current_history_index + 1);
         }
     }
 
     fn backup(&mut self) {
-        self.history.truncate(self.current_history_index);
+        // we want to keep the default state of 1 empty line.
+        // allowing the index to go to 0 and then truncating the history
+        // would wipe everything. So then the new state with changes
+        // would become the default state instead
+
+        if self.current_history_index >= 1 {
+            self.history.truncate(self.current_history_index);
+        }
+
         self.history.push(EditorBackupModel::new(
             self.data.clone(),
             self.get_cursor_position(),
             self.current_size.clone(),
-        ))
+            self.visible_lines,
+        ));
+        self.current_history_index += 1;
     }
 
     fn save(self) -> String {

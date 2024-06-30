@@ -11,11 +11,11 @@
 // by default, there's only one editor.
 
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Text},
     widgets::Paragraph,
-    Frame,
 };
 
 use crate::models::{
@@ -39,12 +39,26 @@ impl EditorView {
 }
 
 impl View for EditorView {
-    fn render(
-        &self,
-        frame: &mut ratatui::Frame,
-        layout: ratatui::prelude::Rect,
-        app_state: &AppState,
-    ) {
+    fn get_has_been_initialized(&self, app_state: &AppState) -> bool {
+        app_state.editor_store.get_is_initialized()
+    }
+
+    fn get_has_been_resized(&self, app_state: &AppState) -> bool {
+        app_state.editor_store.get_is_resized_set()
+    }
+
+    fn init(
+        &mut self,
+        _frame: &mut Frame,
+        rect: Rect,
+        _app_state: &AppState,
+    ) -> Option<AppStateActions> {
+        Some(AppStateActions::EditorActions(
+            EditorContainerModelActions::InitEditor(rect),
+        ))
+    }
+
+    fn render(&self, frame: &mut Frame, layout: Rect, app_state: &AppState) {
         let editors = app_state.editor_store.get_editors();
         let current_percentage = if editors.len() == 2 { 50 } else { 100 };
 
@@ -112,25 +126,6 @@ impl View for EditorView {
         }
     }
 
-    fn get_has_been_initialized(&self, app_state: &AppState) -> bool {
-        app_state.editor_store.get_is_initialized()
-    }
-
-    fn get_has_been_resized(&self, app_state: &AppState) -> bool {
-        app_state.editor_store.get_is_resized_set()
-    }
-
-    fn init(
-        &mut self,
-        frame: &mut Frame,
-        rect: Rect,
-        app_state: &AppState,
-    ) -> Option<AppStateActions> {
-        Some(AppStateActions::EditorActions(
-            EditorContainerModelActions::InitEditor(rect),
-        ))
-    }
-
     fn handle_resize(
         &mut self,
         frame: &mut Frame,
@@ -152,12 +147,12 @@ impl EditorView {
         editor: &EditorModel,
     ) {
         let editor_visible_lines = editor.get_visible_lines();
-        let mut constaints = vec![Constraint::Max(1); editor.get_visible_lines().len() + 1];
-        constaints.push(Constraint::Max(1));
+        let mut constraints = vec![Constraint::Max(1); editor.get_visible_lines().len() + 1];
+        constraints.push(Constraint::Max(1));
 
         let editor_lines_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(constaints)
+            .constraints(constraints)
             .split(layout);
 
         for (index, line_data) in editor_visible_lines.iter().enumerate() {
@@ -187,7 +182,13 @@ impl EditorView {
         app_state: &AppState,
         c: char,
     ) -> Option<AppStateActions> {
-        match (c, context.is_ctrl_pressed) {
+        let char = c
+            .to_lowercase()
+            .collect::<Vec<_>>()
+            .first()
+            .unwrap()
+            .to_owned();
+        match (char, context.is_ctrl_pressed) {
             ('h', true) => {
                 return Some(AppStateActions::EditorActions(
                     EditorContainerModelActions::ChangeFocus(EditorFocus::Prev),
@@ -202,13 +203,13 @@ impl EditorView {
         }
 
         if app_state.app_state_store.get_app_mode() == AppMode::Normal {
-            if c == 'i' {
+            if char == 'i' {
                 return Some(AppStateActions::AppModelActions(
                     AppModelActions::ChangeMode(AppMode::Editing),
                 ));
             }
 
-            if c == 'u' {
+            if char == 'u' {
                 if context.is_shift_pressed {
                     return Some(AppStateActions::EditorActions(
                         EditorContainerModelActions::Redo,
