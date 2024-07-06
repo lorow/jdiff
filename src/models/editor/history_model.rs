@@ -2,7 +2,7 @@ use ratatui::layout::Rect;
 
 use super::types::{CursorPosition, EditorLine};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EditorBackupModel {
     pub data: Vec<EditorLine>,
     pub cursor_position: CursorPosition,

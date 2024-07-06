@@ -1,15 +1,16 @@
 use std::{cmp::min, usize};
-#[derive(Debug)]
-pub enum EditorFocus {
-    Next,
-    Prev,
-}
 
 use ratatui::layout::Rect;
 
 use crate::models::app_state::AppStateActions;
 
 use super::editor_model::{EditorCursorDirection, EditorModel, EditorModelActions};
+
+#[derive(Debug)]
+pub enum EditorFocus {
+    Next,
+    Prev,
+}
 
 #[derive(Debug)]
 pub enum EditorContainerModelActions {
@@ -28,7 +29,7 @@ pub enum EditorContainerModelActions {
     ToggleLines,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EditorContainerModel {
     initialized: bool,
     resized: bool,

@@ -2,7 +2,7 @@ use crate::models::{app_model::AppModelActions, app_state::AppStateActions};
 
 use super::editor::editor_container_models::EditorContainerModelActions;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CommandBarModel {
     pub input: String,
     pub cursor_position: usize,

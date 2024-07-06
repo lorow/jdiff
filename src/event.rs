@@ -4,8 +4,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crossterm::event::Event as CrosstermEvent;
 use crossterm::event::{self, KeyEvent, KeyEventKind, MouseEvent};
+use crossterm::event::Event as CrosstermEvent;
 
 #[derive(Debug)]
 pub enum Event {
@@ -54,7 +54,7 @@ impl EventHandler {
                             CrosstermEvent::Paste(s) => sender.send(Event::Paste(s)),
                             _ => Ok(()),
                         }
-                        .expect("Failed to send event")
+                        .unwrap_or(());
                     }
 
                     if last_tick.elapsed() >= tick_rate {

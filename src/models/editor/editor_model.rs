@@ -29,7 +29,7 @@ pub enum EditorModelActions {
     Redo,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EditorModel {
     data: Vec<EditorLine>,
     history: Vec<EditorBackupModel>,

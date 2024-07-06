@@ -13,7 +13,7 @@ pub enum AppModelActions {
     Exit,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AppModel {
     should_quit: bool,
     mode: AppMode,

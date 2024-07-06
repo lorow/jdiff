@@ -4,7 +4,7 @@ pub enum RouterModelActions {
     Route(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RouterModel {
     routes: Vec<String>,
     current_route: String,

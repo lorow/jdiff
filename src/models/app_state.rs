@@ -17,7 +17,7 @@ pub enum AppStateActions {
     EditorActions(EditorContainerModelActions),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AppState {
     pub app_state_store: AppModel,
     pub command_bar_store: CommandBarModel,
@@ -26,8 +26,8 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn update(&mut self, message: Option<AppStateActions>) {
-        let mut action_to_resolve = message;
+    pub fn update(&mut self, message: AppStateActions) {
+        let mut action_to_resolve: Option<AppStateActions> = Some(message);
 
         while let Some(action) = action_to_resolve {
             match action {
@@ -42,11 +42,7 @@ impl AppState {
                     action_to_resolve = self.app_state_store.update(model_action)
                 }
                 AppStateActions::CommandBarActions(model_action) => {
-                    let should_reset_mode = match model_action {
-                        CommandBarModelActions::Enter => true,
-                        _ => false,
-                    };
-
+                    let should_reset_mode = matches!(model_action, CommandBarModelActions::Enter);
                     action_to_resolve = self.command_bar_store.update(model_action);
 
                     if should_reset_mode {
