@@ -1,32 +1,36 @@
+use std::fs::File;
+use std::panic;
 use std::{
     collections::HashMap,
     io::{self, Stdout},
 };
-use std::panic;
 
 use anyhow::Result;
+use crossterm::event::{KeyCode, KeyModifiers};
 use crossterm::{
     event::KeyCode::Char,
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::prelude::*;
 
+use crate::models::app_model::{AppMode, AppModelActions};
+use crate::models::app_state::{AppStateActions, BaseActions};
+use crate::models::model_manager::ModelManager;
 use crate::{
     event::{Event, EventHandler},
     models::app_state::AppState,
 };
-use crate::models::app_model::{AppMode, AppModelActions};
-use crate::models::app_state::{AppStateActions, BaseActions};
-use crate::models::model_manager::ModelManager;
 
+use super::views::editor_view::EditorView;
+use super::views::view::{TabState, ViewContext};
 use super::{
     command_bar::view::CommandBar,
     views::{view::View, welcome_view::WelcomeVIew},
 };
-use super::views::editor_view::EditorView;
-use super::views::view::{TabState, ViewContext};
+
+use tracing::info;
+use tracing_appender::{non_blocking, non_blocking::WorkerGuard};
 
 #[derive(Default)]
 pub struct UiManager {}
@@ -38,6 +42,10 @@ impl UiManager {
 
     pub fn run(&mut self) -> Result<()> {
         install_panic_hook();
+
+        let _guard = init_tracing()?;
+        info!("Starting tracing, app launched");
+
         let mut app_state = AppState::new();
         let mut routes_map = HashMap::<String, Box<dyn View>>::new();
 
@@ -129,6 +137,7 @@ impl UiManager {
             };
         }
 
+        info!("Shutting down, check tracing.log");
         restore_terminal(&mut terminal)
     }
 
@@ -162,7 +171,6 @@ impl UiManager {
             }
         }
 
-        let view = view;
         view.render(frame, rect, &current_state);
         command_bar.render(frame, main_layout[1], current_state);
     }
@@ -185,6 +193,15 @@ fn reset() -> Result<()> {
     disable_raw_mode()?;
     crossterm::execute!(io::stderr(), LeaveAlternateScreen)?;
     Ok(())
+}
+
+fn init_tracing() -> Result<WorkerGuard> {
+    let file = File::create("tracing.log").expect("Failed to create tracing.log");
+
+    let (non_blocking, guard) = non_blocking(file);
+    tracing_subscriber::fmt().with_writer(non_blocking).init();
+
+    Ok(guard)
 }
 
 fn install_panic_hook() {
