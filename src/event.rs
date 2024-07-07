@@ -4,8 +4,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crossterm::event::{self, KeyEvent, KeyEventKind, MouseEvent};
 use crossterm::event::Event as CrosstermEvent;
+use crossterm::event::{self, KeyEvent, KeyEventKind, MouseEvent};
 
 #[derive(Debug)]
 pub enum Event {
