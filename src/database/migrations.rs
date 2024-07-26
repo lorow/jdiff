@@ -1,3 +1,5 @@
+use rusqlite::Connection;
+
 pub trait ToSql {
     fn to_sql(&self) -> String;
 }
@@ -10,6 +12,12 @@ pub struct Migration {
 impl ToSql for Migration {
     fn to_sql(&self) -> String {
         self.sql.clone()
+    }
+}
+
+impl Migration {
+    pub fn run(&self, connection: &Connection) {
+        connection.execute(self.to_sql().as_str(), []).unwrap();
     }
 }
 
