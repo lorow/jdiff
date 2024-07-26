@@ -3,6 +3,7 @@ use std::{
     usize,
 };
 
+use crossterm::cursor::position;
 use ratatui::layout::Rect;
 
 use super::{
@@ -91,6 +92,15 @@ impl EditorModel {
         // we're asked to remove the last line, no point
         if position == 0 {
             return;
+        }
+
+        if !self.data[position].1.is_empty() {
+            let previous_position = position.saturating_sub(1);
+            self.data[previous_position].1 = {
+                let mut previous_line = self.data[previous_position].1.clone();
+                previous_line += self.data[position].1.as_str();
+                previous_line
+            }
         }
 
         self.data.remove(position);
