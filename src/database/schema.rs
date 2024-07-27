@@ -8,6 +8,7 @@ pub struct Request {
     pub headers: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct EditorContent {
     pub id: i32,
     pub project_id: i32,
